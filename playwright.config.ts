@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({ testDir: './tests', testIgnore: ['admin.spec.ts','wishes.spec.ts'], timeout: 80000, expect: { timeout: 10000 }, workers: 1, use: { baseURL: 'http://localhost:5173', browserName: 'chromium', channel: 'msedge', viewport: { width: 390, height: 844 }, screenshot: 'only-on-failure', trace: 'retain-on-failure' }, webServer: { command: 'npm run dev -- --port 5173', url: 'http://localhost:5173', reuseExistingServer: true } });

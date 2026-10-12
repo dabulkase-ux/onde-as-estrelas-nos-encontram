@@ -1,0 +1,20 @@
+-- Executar com supabase test db após iniciar o stack e aplicar a migration.
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions;
+select plan(10);
+select ok((select bool_and(relrowsecurity) from pg_class where oid in ('public.quiz_attempts'::regclass,'public.wishes'::regclass,'public.romantic_responses'::regclass,'public.admin_sessions'::regclass,'public.request_limits'::regclass)), 'RLS em todas as tabelas');
+select is((select count(*)::integer from pg_policies where schemaname='public' and tablename in ('quiz_attempts','wishes','romantic_responses','admin_sessions','request_limits')),0,'Sem políticas públicas');
+select ok(not has_table_privilege('anon','public.quiz_attempts','SELECT'),'anon não lê quizzes');
+select ok(not has_table_privilege('authenticated','public.quiz_attempts','SELECT'),'authenticated não lê quizzes');
+select ok(not has_table_privilege('anon','public.wishes','INSERT'),'anon não grava direto');
+select ok(not has_table_privilege('anon','public.admin_sessions','SELECT'),'sessões privadas');
+select ok(not has_function_privilege('anon','public.admin_overview()','EXECUTE'),'RPC administrativa privada');
+select ok(not has_function_privilege('authenticated','public.consume_rate_limit(text,integer,integer)','EXECUTE'),'limitador privado');
+delete from public.request_limits where bucket = 'admin-login';
+set local role service_role;
+select is(public.consume_rate_limit('admin-login',1,300),true,'primeira tentativa permitida');
+select is(public.consume_rate_limit('admin-login',1,300),false,'segunda tentativa limitada');
+reset role;
+select * from finish();
+rollback;

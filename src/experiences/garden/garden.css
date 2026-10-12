@@ -1,0 +1,28 @@
+.garden-experience{position:fixed;inset:0;z-index:20;overflow:hidden;background:#080c0c;animation:garden-arrive .9s ease both}
+.garden-experience-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#080c0c}
+.garden-experience-exit{position:absolute;z-index:2;top:max(14px,env(safe-area-inset-top));left:max(14px,env(safe-area-inset-left));min-height:44px;padding:10px 15px;border:1px solid #d8c99b55;border-radius:24px;background:#101917e8;color:#e9e6d6;font-size:12px;backdrop-filter:blur(10px)}
+.garden-experience-returning{animation:garden-depart 1.1s ease both;pointer-events:none}
+.garden-experience-returning .garden-experience-exit{opacity:0;transition:opacity .2s}
+.garden-experience-returning .garden-experience-frame{pointer-events:none}
+.garden-portal-invitation{position:fixed;inset:0;z-index:12;display:grid;place-content:center;gap:20px;padding:24px;background:radial-gradient(ellipse at center,#101711d9,#05070bd9 72%);text-align:center;animation:garden-arrive .8s both}
+.garden-portal-invitation p{max-width:460px;font:clamp(23px,5vw,34px)/1.45 Georgia,serif;color:#efe3ca}
+.garden-portal-invitation div{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.garden-portal-invitation button{min-height:48px;padding:12px 20px;border:1px solid #d6c18f75;border-radius:28px;background:#c8b27e17;color:#f1e5cc}
+.garden-portal-invitation button:last-child{background:#09100e;border-color:#d6c18f45}
+.garden-access-targets{position:absolute;inset:0;z-index:4;pointer-events:none}
+.garden-access-target{position:absolute;width:48px;height:48px;margin:-24px 0 0 -24px;border:0;border-radius:50%;padding:0;background:#e1c89408;color:#f0dfb9;pointer-events:auto;touch-action:manipulation}
+.garden-access-target-label{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
+.garden-access-target:focus-visible,.garden-access-target:hover{outline:1px solid #e6cda7;outline-offset:3px;background:#e1c8941a}
+.garden-access-target:focus-visible .garden-access-target-label,.garden-access-target:hover .garden-access-target-label{position:absolute;clip-path:none;bottom:54px;left:50%;width:max-content;max-width:200px;height:auto;overflow:visible;transform:translateX(-50%);padding:9px 12px;border:1px solid #d4bba550;border-radius:10px;background:#07101fed;font-size:12px;line-height:1.5;pointer-events:none}
+.garden-access-target[data-onscreen=false]{position:fixed;left:12px!important;top:calc(100svh - 66px)!important;width:1px;height:1px;clip-path:inset(50%);pointer-events:none;margin:0}
+.garden-access-target[data-onscreen=false]:focus-visible{clip-path:none;width:48px;height:48px;pointer-events:auto}
+.garden-access-fallback .garden-access-target{position:fixed;left:50%!important;top:auto!important;bottom:calc(82px + env(safe-area-inset-bottom));width:auto;height:48px;margin:0;padding:0 18px;border:1px solid #d4bba550;border-radius:24px;background:#0b121de8;transform:translateX(-50%)}
+.garden-access-fallback .garden-access-target-label{position:static;clip-path:none;width:auto;height:auto;overflow:visible}
+.travel-overlay.portal-crossing{background:radial-gradient(ellipse at center,#ead6aa,#b49a6980 28%,#030609 90%);animation:portal-crossing 1.2s ease-in both}
+.garden-open .site-header,.garden-open .site-footer{visibility:hidden}
+.garden-open main{opacity:0;pointer-events:none}
+@keyframes garden-arrive{from{opacity:0}to{opacity:1}}
+@keyframes garden-depart{to{opacity:0}}
+@keyframes portal-crossing{0%{opacity:0}35%{opacity:1}100%{opacity:.96}}
+@media(max-width:350px){.garden-portal-invitation{gap:14px;padding:18px}.garden-portal-invitation div{gap:8px}.garden-portal-invitation button{padding:11px 15px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){.garden-experience,.garden-portal-invitation,.travel-overlay.portal-crossing{animation:none}.garden-experience-returning{opacity:0}}

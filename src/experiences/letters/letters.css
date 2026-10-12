@@ -1,0 +1,34 @@
+.letter-targets{position:absolute;inset:0;pointer-events:none;z-index:3}
+.letter-target{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;background:none;border:0;border-radius:12px;padding:0;pointer-events:auto;color:#e6cda7;touch-action:manipulation}
+.letter-target svg{width:42px;height:32px;fill:#102038;stroke:currentColor;stroke-width:1.2;opacity:0}
+.letter-target-label{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
+.letter-target[data-onscreen=false]{position:fixed;left:12px!important;top:calc(100svh - 66px)!important;width:1px;height:1px;clip-path:inset(50%);pointer-events:none;margin:0}
+.letter-target:focus-visible{outline:2px solid #e6cda7;outline-offset:3px}
+.letter-target:focus-visible .letter-target-label,.letter-target:hover .letter-target-label{clip-path:none;width:max-content;max-width:200px;height:auto;overflow:visible;bottom:52px;left:0;background:#07101fed;border:1px solid #d4bba550;padding:9px 12px;border-radius:10px;font-size:12px;line-height:1.5;pointer-events:none}
+.letter-target[data-onscreen=false]:focus-visible{clip-path:none;width:44px;height:44px;pointer-events:auto}
+.letter-target[data-onscreen=false]:focus-visible svg,.letters-fallback svg{opacity:.85;filter:drop-shadow(0 0 7px #d4bba560)}
+.letter-target.letter-read{color:#a8c3d7}
+.letter-open .site-header,.letter-open .site-footer{visibility:hidden}
+.experience.letter-open{touch-action:auto}
+.letter-open main{opacity:0;pointer-events:none}
+.letter-reader{position:fixed;inset:0;z-index:10;background:radial-gradient(ellipse at 50% 15%,#15243be6,#02050bf5 80%);touch-action:auto;overscroll-behavior:contain;animation:letter-appear .7s both}
+.letter-scroll{height:100%;overflow-y:auto;overscroll-behavior:contain;padding:16px 14px max(32px,env(safe-area-inset-bottom))}
+.letter-wrap{max-width:670px;margin:auto;position:relative}
+.letter-toolbar{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#08101fed;padding:8px 4px;border-bottom:1px solid #d4bba526}
+.letter-toolbar span{font-size:10px;letter-spacing:1.4px;line-height:1.7;max-width:180px;color:#ddc9aa}
+.letter-toolbar button,.letter-reveal{min-height:44px;padding:10px 15px;border:1px solid #d4bba550;border-radius:24px;background:#0b1424;color:#eddcc3;font-size:12px;flex-shrink:0}
+.letter-reader button:focus-visible{outline:2px solid #e6cda7;outline-offset:3px}
+.letter-envelope{position:relative;width:140px;height:78px;margin:34px auto -18px;border:1px solid #d4bba55c;background:#18253b;box-shadow:0 0 40px #d4bba512;perspective:500px}
+.letter-flap{position:absolute;inset:0;clip-path:polygon(0 0,100% 0,50% 65%);background:#dfcdb68c;transform-origin:top;animation:letter-unfold 1.3s ease both}
+.letter-seal{position:absolute;width:12px;height:12px;border:1px solid #e6cda7;border-radius:50%;left:calc(50% - 6px);top:44%;opacity:.65}
+.letter-paper{position:relative;border:1px solid #e5cba62e;border-radius:4px;padding:clamp(22px,5vw,48px);background:linear-gradient(150deg,#192638f5,#0a1323fa);box-shadow:0 20px 80px #0007;animation:letter-sheet 1.2s .3s both;color:#e8ded0}
+.letter-paper h2{font:clamp(25px,4vw,36px)/1.45 Georgia,serif;color:#f0dfc3;margin:0 0 22px;outline:none;overflow-wrap:anywhere}
+.letter-paper p{font:clamp(17px,2.7vw,20px)/1.95 Georgia,serif;margin:22px 0 0;animation:letter-appear 1s both;overflow-wrap:anywhere}
+.letter-closing{animation:letter-close .4s both;pointer-events:none}
+.letter-closing .letter-paper{animation:letter-fold .4s both}
+@keyframes letter-appear{from{opacity:0}to{opacity:1}}
+@keyframes letter-unfold{from{transform:rotateX(0)}to{transform:rotateX(175deg)}}
+@keyframes letter-sheet{from{opacity:0;transform:translateY(35px)}to{opacity:1;transform:translateY(0)}}
+@keyframes letter-close{to{opacity:0}}
+@keyframes letter-fold{to{transform:translateY(55px) scale(.96);opacity:0}}
+@media(prefers-reduced-motion:reduce){.letter-reader,.letter-paper,.letter-paper p,.letter-flap{animation:none}.letter-flap{transform:rotateX(175deg)}}
