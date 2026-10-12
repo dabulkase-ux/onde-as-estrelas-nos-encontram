@@ -196,7 +196,7 @@ export function App() {
   const wishOpen = navigation.phase === 'WISH_ACTIVE';
   const eyesActive=navigation.phase==='EYES_ACTIVE';
   const unlocked=eyesUnlocked(lettersRead,quizCompleted,coupleCompleted,blackHoleProgress);
-  const encounter = useWishEncounter(!eyesHint && act === 'universe' && introDismissed && navigation.phase === 'GALAXY_IDLE');
+  const encounter = useWishEncounter(!finishEyesOverride && !eyesHint && act === 'universe' && introDismissed && navigation.phase === 'GALAXY_IDLE');
   const startEyes=useCallback(()=>{
     if(navigationRef.current.phase!=='GALAXY_IDLE')return;
     setEyesReady(false);setEyesHint(false);setEyesSeen(true);

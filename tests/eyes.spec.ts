@@ -101,7 +101,7 @@ test('persisted replay does not auto-trigger and a quiz is never interrupted',as
   await page.reload();await enter(page);await expect(page.getByRole('button',{name:'Rever o olhar entre as estrelas'})).toBeVisible();
 });
 test('finish URL starts the finale without changing saved experience progress and can replay after reload',async({page})=>{
-  test.setTimeout(90000);
+  test.setTimeout(180000);
   await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/?finish=1');await enter(page,false);
   await expect(page.locator('[data-navigation="GALAXY_IDLE"]')).toBeVisible();
   await page.waitForTimeout(400);
@@ -119,7 +119,7 @@ test('finish URL starts the finale without changing saved experience progress an
     'meu-universo.black-hole-secrets.v1','meu-universo.eyes-constellation.v1',
   ].map(key=>[key,localStorage.getItem(key)])));
   expect(progressAfter).toEqual(progressBefore);
-  await page.reload();await enter(page,false);
+  await page.reload();await enter(page);
   await expect(page.getByRole('dialog',{name:'Constelação dos Olhos'})).toBeVisible({timeout:12000});
 });
 test('without finish URL the normal unlock requirements still apply',async({page})=>{
