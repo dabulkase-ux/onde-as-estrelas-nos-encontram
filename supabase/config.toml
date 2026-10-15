@@ -419,3 +419,7 @@ verify_jwt = false
 
 [functions.submit]
 verify_jwt = false
+
+# Public reading, publication and grading scoped to the personal universe.
+[functions.her-universe]
+verify_jwt = false

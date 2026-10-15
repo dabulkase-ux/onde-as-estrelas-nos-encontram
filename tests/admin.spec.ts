@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { experience } from '../src/config/experience';
 import { correct } from '../supabase/functions/_shared/security';
+import { dualAdminMock } from './helpers/dualAdminMock';
 const token='a'.repeat(64);
 async function mockApi(page:Page, submissions: Record<string,unknown>[] = [], expires=15*60000) {
  let authorized=false;
@@ -20,12 +21,13 @@ async function mockApi(page:Page, submissions: Record<string,unknown>[] = [], ex
 }
 for(const width of [320,390,430,1440]) test(`private admin login, empty data, full wish and logout ${width}`,async({page})=>{
  await page.setViewportSize({width,height:844});await mockApi(page);await page.goto('/admin');
- expect(await page.getByRole('textbox').count()).toBe(0);
+ await expect(page.getByRole('textbox',{name:'Usuário',exact:true})).toBeVisible();await expect(page.locator('form input')).toHaveCount(2);await expect(page.getByLabel('Senha',{exact:true})).toHaveAttribute('type','password');
  await page.getByLabel('Senha',{exact:true}).fill('wrong');await page.getByRole('button',{name:'Entrar',exact:true}).click();await expect(page.getByRole('alert')).toHaveText('Senha incorreta.');
  await page.getByLabel('Senha',{exact:true}).fill('limited');await page.getByRole('button',{name:'Entrar',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Muitas tentativas');
  await page.getByLabel('Senha',{exact:true}).fill('test-access');await page.getByRole('button',{name:'Entrar',exact:true}).click();await expect(page.getByText('Nenhum registro ainda')).toBeVisible();
  await expect(page.locator('.admin-counts strong').first()).toHaveText('0');expect(await page.locator('canvas').count()).toBe(0);
- expect(await page.evaluate(t=>JSON.stringify(localStorage).includes(t)||JSON.stringify(sessionStorage).includes(t),token)).toBe(false);
+ expect(await page.evaluate(t=>JSON.stringify(localStorage).includes(t),token)).toBe(false);
+ await page.reload();await expect(page.getByRole('button',{name:'Sair',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Desejos',exact:true}).click();await expect(page.getByText('Um desejo de teste',{exact:false})).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:`test-results/admin-${width}.png`});
@@ -98,4 +100,15 @@ for(const kind of ['couple','compatibility'] as const) for(const guest of [false
  await page.getByRole('button',{name:kind==='couple'?'Quiz de Casal':/^Compatibilidade/,exact:kind==='couple'}).click();
  await expect(quiz.getByRole('button',{name:kind==='couple'?'Reler a declaração':'E se eu pudesse escolher de novo?'})).toBeVisible();
  expect(sent).toHaveLength(guest?0:1);
+});
+
+for(const width of [320,390,430,1440])test(`same admin panel isolates both usernames at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:850});const server=await dualAdminMock();
+  await page.route('https://supabase-test.invalid/functions/v1/admin',async route=>{const response=await server.handler(new Request(route.request().url(),{method:'POST',headers:{Origin:'http://localhost:5174','Content-Type':'application/json',Authorization:route.request().headers().authorization??''},body:route.request().postData()}));await route.fulfill({status:response.status,contentType:'application/json',body:await response.text()});});
+  await page.goto('/admin');await page.getByLabel('Usuário',{exact:true}).fill('admin');await page.getByLabel('Senha',{exact:true}).fill('incorrect');await page.getByRole('button',{name:'Entrar',exact:true}).tap();await expect(page.getByRole('alert')).toHaveText('Usuário ou senha incorretos.');
+  await page.getByLabel('Senha',{exact:true}).fill('audit-fixture-password-only');await page.getByRole('button',{name:'Entrar',exact:true}).tap();await expect(page.getByText('Tentativa: original-attempt',{exact:true})).toBeVisible();await page.reload();await expect(page.getByText('Tentativa: original-attempt',{exact:true})).toBeVisible();await expect(page.getByText('Pergunta dela 1',{exact:true})).toHaveCount(0);await page.getByRole('button',{name:'Sair',exact:true}).tap();
+  await page.getByLabel('Usuário',{exact:true}).fill('meu-universo-dela');await page.getByLabel('Senha',{exact:true}).fill('audit-fixture-password-only');await page.getByRole('button',{name:'Entrar',exact:true}).tap();await expect(page.getByText('Tentativa: her-compatibility-attempt',{exact:true})).toBeVisible();await page.reload();await expect(page.getByText('Tentativa: her-compatibility-attempt',{exact:true})).toBeVisible();await expect(page.getByText(/63%/)).toBeVisible();
+  await page.getByRole('button',{name:'Quiz de casal',exact:true}).tap();await expect(page.getByText(/3\/4 — 75%/)).toBeVisible();await expect(page.getByText('Pergunta dela 1',{exact:true})).toBeVisible();await expect(page.getByText('A: Alternativa dela A',{exact:true})).toBeVisible();await expect(page.getByText(/Respostas corretas:/).first()).toBeVisible();await expect(page.getByText('Tentativa: original-attempt',{exact:true})).toHaveCount(0);
+  for(const section of ['Desejos','Pedido romântico']){await page.getByRole('button',{name:section,exact:true}).tap();await expect(page.getByText('Nenhum registro ainda',{exact:true})).toBeVisible();await expect(page.locator('.admin-record')).toHaveCount(0);}
+  await expect(page.locator('.admin-counts strong')).toHaveText(['2','0','0']);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`test-results/dual-admin-${width}.png`});
 });

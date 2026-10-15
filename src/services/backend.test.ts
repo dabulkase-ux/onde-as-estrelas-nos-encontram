@@ -31,7 +31,7 @@ async function fixture() {
  const settings={db,passwordHash,origins:[origin],now:()=>clock};
  const admin=makeHandler('admin',settings); const submit=makeHandler('submit',settings);
  const request=(body:unknown,token?:string)=>new Request('https://functions.invalid',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify(body)});
- const login=async()=>{const response=await admin(request({action:'login',password}));expect(response.status).toBe(200);return await response.json() as {token:string;expiresAt:string};};
+ const login=async()=>{const response=await admin(request({action:'login',username:'admin',password}));expect(response.status).toBe(200);return await response.json() as {token:string;expiresAt:string};};
  return {password,passwordHash,admin,submit,request,login,rows,sessions,limits,advance:()=>{clock+=16*60000;}};
 }
 describe('server authorization and consent',()=>{
@@ -57,10 +57,10 @@ describe('server authorization and consent',()=>{
  });
  it('accepts wrong/correct password and enforces attempt limits',async()=>{
   const f=await fixture();
-  expect((await f.admin(f.request({action:'login',password:'wrong'}))).status).toBe(401);
+  expect((await f.admin(f.request({action:'login',username:'admin',password:'wrong'}))).status).toBe(401);
   const session=await f.login();expect(session.token).toMatch(/^[a-f0-9]{64}$/);expect(f.sessions.has(await digest(session.token))).toBe(true);
-  for(let i=0;i<3;i++) await f.admin(f.request({action:'login',password:'wrong'}));
-  expect((await f.admin(f.request({action:'login',password:f.password}))).status).toBe(429);
+  for(let i=0;i<3;i++) await f.admin(f.request({action:'login',username:'admin',password:'wrong'}));
+  expect((await f.admin(f.request({action:'login',username:'admin',password:f.password}))).status).toBe(429);
  });
  it('requires authentication, expires sessions, revokes on logout and password rotation',async()=>{
   const f=await fixture(); const body={action:'data',kind:'wish',page:0};

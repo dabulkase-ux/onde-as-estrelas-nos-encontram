@@ -3,6 +3,9 @@
 .eyes-experience>button{pointer-events:auto;position:absolute;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);min-height:44px;max-width:90%;padding:10px 20px;border:1px solid #cbb28c40;border-radius:24px;background:#080d1880;color:#c8c2b6;font-size:12px}
 .eyes-open .site-header,.eyes-open .site-footer{visibility:hidden}
 .eyes-open main{visibility:hidden}
+.eyes-invitation{position:absolute;bottom:75px;left:16px;right:16px;max-width:580px;margin:auto;text-align:center;pointer-events:auto;color:#e5dccb;animation:eyes-reveal 3s ease both;background:#040914bf;border-radius:18px;padding:12px;font:clamp(14px,3.6vw,18px)/1.6 Georgia,serif}.eyes-invitation p{margin:0 0 10px}.eyes-invitation button{min-height:44px;margin:0 6px;padding:10px 18px;border:1px solid #cbb28c60;border-radius:24px;background:#111a2a;color:#eee2cf}.eyes-experience:has(.eyes-invitation) .eyes-phrase{bottom:38%;font-size:clamp(17px,4vw,24px)}
+@media(max-height:450px){.eyes-invitation{bottom:55px;left:45%;font-size:13px;padding:8px}.eyes-experience:has(.eyes-invitation) .eyes-phrase{left:16px;right:58%;bottom:22%;font-size:15px}}
+@media(prefers-reduced-motion:reduce){.eyes-invitation{animation:none}}
 .eyes-revisit{position:absolute;transform:translate(-50%,-50%);width:58px;height:44px;border:1px solid transparent;background:transparent;border-radius:50%;color:#c7c5df;pointer-events:auto}
 .eyes-revisit[data-onscreen=false]{opacity:0;pointer-events:none}
 .eyes-revisit svg{width:42px;height:22px;filter:drop-shadow(0 0 6px #9abde955)}

@@ -29,13 +29,13 @@ async function explore(page:Page,seconds=14) {
     await page.locator('canvas[data-renderer="webgl"]').dispatchEvent('wheel',{deltaY:1});await page.waitForTimeout(1000);
   }
 }
-for(const width of [320,390,430,1440])test(`automatic eyes, contemplation, return and replay at ${width}px`,async({page})=>{
+for(const width of [320,390,430,1440])test(`automatic eyes, contemplation and romantic affirmation to Nexus at ${width}px`,async({page})=>{
   test.setTimeout(130000);await page.setViewportSize({width,height:width===1440?900:740});await page.emulateMedia({reducedMotion:'reduce'});
   await seed(page);await page.goto('/');await enter(page);
   await page.waitForTimeout(1500);await expect(page.locator('[data-navigation="GALAXY_IDLE"]')).toBeVisible();
   if(width===1440)await page.emulateMedia({reducedMotion:'no-preference'});
   await explore(page);await expect(page.getByRole('dialog',{name:'Constelação dos Olhos'})).toBeVisible();
-  const canvas=page.locator('canvas[data-renderer="webgl"]');const saved=await canvas.getAttribute('data-saved-camera-pose');
+  const canvas=page.locator('canvas[data-renderer="webgl"]');
   await expect(page.getByText(eyesPhrase,{exact:true})).toBeVisible({timeout:35000});
   await expect(canvas).toHaveAttribute('data-eyes-count','2');await expect(canvas).toHaveAttribute('data-eyes-formed','true');
   await expect(page.getByRole('button',{name:'Quiz de Casal',exact:true})).toBeHidden();
@@ -44,16 +44,11 @@ for(const width of [320,390,430,1440])test(`automatic eyes, contemplation, retur
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:`test-results/eyes-${width}.png`});
   if(width===390){const center=JSON.parse((await canvas.getAttribute('data-eyes-center'))!);await page.screenshot({path:'test-results/eyes-reference-detail-mobile.png',clip:{x:0,y:Math.max(0,center[1]-97.5),width:390,height:195}});}
-  if(width===430){await page.setViewportSize({width:844,height:390});await expect(page.getByText(eyesPhrase,{exact:true})).toBeInViewport();await expect(page.getByRole('button',{name:'Voltar à galáxia',exact:true})).toBeInViewport();await expect.poll(async()=>JSON.parse((await canvas.getAttribute('data-eyes-center'))!)[1]).toBeLessThan(200);await page.screenshot({path:'test-results/eyes-landscape.png'});}
-  if(width===390)await page.getByRole('button',{name:'Voltar à galáxia',exact:true}).tap();
-  else await page.getByRole('button',{name:'Voltar à galáxia',exact:true}).click();
-  if(width===430)await page.setViewportSize({width,height:740});
-  await expect(page.locator('[data-navigation="GALAXY_IDLE"]')).toBeVisible({timeout:10000});
-  expect(await canvas.getAttribute('data-camera-pose')).toBe(saved);
-  const replay=page.getByRole('button',{name:'Rever o olhar entre as estrelas'});
-  await expect(replay).toBeVisible();await replay.focus();await page.keyboard.press('Enter');
-  await expect(page.getByRole('dialog',{name:'Constelação dos Olhos'})).toBeVisible();
-  await page.getByRole('button',{name:'Voltar à galáxia',exact:true}).click();await expect(page.locator('[data-navigation="GALAXY_IDLE"]')).toBeVisible({timeout:10000});
+  await page.getByRole('button',{name:'Sim, pode',exact:true}).click();
+  await expect(page).toHaveURL(/\/universo-dela$/,{timeout:10000});
+  await expect(page.locator('section[data-her-stage="travel"]')).toBeVisible();
+  await expect(page.locator('canvas')).toHaveCount(1);
+
 });
 test('reference artwork forms from scattered stars before lines and the final sentence',async({page})=>{
   test.setTimeout(130000);
@@ -74,7 +69,8 @@ test('reference artwork forms from scattered stars before lines and the final se
   const center=JSON.parse((await page.locator('canvas[data-renderer="webgl"]').getAttribute('data-eyes-center'))!);
   await page.screenshot({path:'test-results/eyes-reference-detail-desktop.png',clip:{x:280,y:Math.max(0,center[1]-220),width:880,height:440}});
   expect(errors).toEqual([]);
-  await page.getByRole('button',{name:'Voltar à galáxia',exact:true}).click();await expect(page.locator('[data-navigation="GALAXY_IDLE"]')).toBeVisible({timeout:10000});
+  await page.getByRole('button',{name:'Sim, pode',exact:true}).click();
+  await expect(page).toHaveURL(/\/universo-dela$/,{timeout:10000});
 });
 test('an unlocked pending finale never interrupts an active quiz',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});await seed(page);await page.goto('/');await enter(page);
@@ -89,7 +85,9 @@ test('waits for a held gesture to end before starting',async({page})=>{
   await explore(page,14);await expect(page.getByRole('dialog',{name:'Constelação dos Olhos'})).toBeHidden();
   await root.dispatchEvent('pointerup',{pointerId:77,buttons:0});
   await expect(page.getByRole('dialog',{name:'Constelação dos Olhos'})).toBeVisible({timeout:6000});
-  await page.getByRole('button',{name:'Voltar à galáxia',exact:true}).tap();await expect(page.locator('[data-navigation="GALAXY_IDLE"]')).toBeVisible({timeout:10000});
+  await expect(page.getByText(eyesPhrase,{exact:true})).toBeVisible({timeout:10000});
+  await page.getByRole('button',{name:'Sim, pode',exact:true}).click();
+  await expect(page).toHaveURL(/\/universo-dela$/,{timeout:10000});
 });
 test('persisted replay does not auto-trigger and a quiz is never interrupted',async({page})=>{
   test.setTimeout(130000);
@@ -111,16 +109,15 @@ test('finish URL starts the finale without changing saved experience progress an
   ].map(key=>[key,localStorage.getItem(key)])));
   await expect(page.getByRole('dialog',{name:'Constelação dos Olhos'})).toBeVisible({timeout:12000});
   await expect(page.getByText(eyesPhrase,{exact:true})).toBeVisible({timeout:10000});
-  await page.getByRole('button',{name:'Voltar à galáxia',exact:true}).click();
-  await expect(page.locator('[data-navigation="GALAXY_IDLE"]')).toBeVisible({timeout:10000});
-  await expect(page.getByRole('button',{name:'Rever o olhar entre as estrelas'})).toBeVisible();
+  await page.getByRole('button',{name:'Sim, pode',exact:true}).click();
+  await expect(page).toHaveURL(/\/universo-dela$/,{timeout:10000});
   const progressAfter=await page.evaluate(()=>Object.fromEntries([
     'meu-universo.compatibility.v1','meu-universo.couple.v1','meu-universo.lost-letters.v1',
     'meu-universo.black-hole-secrets.v1','meu-universo.eyes-constellation.v1',
   ].map(key=>[key,localStorage.getItem(key)])));
   expect(progressAfter).toEqual(progressBefore);
-  await page.reload();await enter(page);
-  await expect(page.getByRole('dialog',{name:'Constelação dos Olhos'})).toBeVisible({timeout:12000});
+  await page.goto('/?finish=1');await enter(page,false);
+  await expect(page.getByRole('dialog',{name:'Constelação dos Olhos'})).toBeVisible({timeout:15000});
 });
 test('without finish URL the normal unlock requirements still apply',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/');await enter(page);

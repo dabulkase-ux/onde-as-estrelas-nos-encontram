@@ -1,0 +1,27 @@
+/* The original quiz styles remain the reference; all adaptations are scoped. */
+.her-quiz-preview{max-width:620px;color:#f0e3cf}
+.compatibility-builder .her-quiz-preview .builder-kicker{font:10px/1.6 Arial,sans-serif;letter-spacing:2px;color:#cbb28c}
+.compatibility-builder .her-quiz-preview h2{font-size:clamp(23px,4vw,32px);line-height:1.4;margin:22px 0;color:#f0e3cf}
+.compatibility-builder .her-quiz-preview p{color:#a9aab5;font:13px/1.7 Arial,sans-serif}
+.her-quiz-preview fieldset{display:grid;gap:10px;min-width:0;margin:24px 0}
+.her-quiz-preview label.preview-option{margin:0;background:#ffffff03;border-color:#cbb28c30;color:#eee5d8;transition:background .2s,border-color .2s,box-shadow .2s;overflow-wrap:anywhere}
+.her-quiz-preview label.preview-option.selected{background:#cbb28c15;border-color:#cbb28c;box-shadow:0 0 20px #cbb28c0a}
+.her-quiz-preview label.preview-option input{width:17px;height:17px;accent-color:#cbb28c}
+.compatibility-builder .her-quiz-preview button{border-color:#cbb28c55;background:#cbb28c12;border-radius:24px;min-height:48px;color:#e6d6bd;padding:12px 18px}
+.her-quiz-preview .her-question-heading{animation:quiz-enter .45s ease both}
+.compatibility-builder .her-quiz-preview .her-result-percentage{font:76px/1.2 Georgia,serif;text-align:center;color:#f0e3cf;animation:quiz-enter 1.2s ease both;margin:20px 0}
+.her-result-percentage span{display:block;font:clamp(19px,4vw,26px)/1.6 Georgia,serif;margin-top:12px}
+.compatibility-builder .her-quiz-preview .builder-link,.compatibility-builder .her-quiz-preview .quiz-restart{display:block;margin:20px auto;background:none;border-color:transparent;text-decoration:underline;color:#b4ad9e}
+.her-participant-couple label.preview-option.selected{border-color:#d8b8a7;background:#d8b8a714}
+.her-participant-couple label.preview-option input{accent-color:#d8b8a7}
+.her-participant-couple .couple-preview-feedback{border:0;border-left:1px solid #e2b9a5;border-radius:0;background:none;padding:8px 16px}
+.compatibility-builder .her-participant-couple .couple-preview-feedback p:first-child{font:18px/1.8 Georgia,serif;color:#ebcab1}
+.couple-preview-comment{white-space:pre-wrap}
+.compatibility-builder.participant-experience{width:100%;height:100dvh;border:0;border-radius:0;background:radial-gradient(ellipse at 50% 20%,#132137,#050810 65%);animation:quiz-enter .65s ease both}
+.compatibility-builder.participant-couple{background:radial-gradient(ellipse at 50% 15%,#18253c,#060912 70%)}
+.participant-experience .builder-header{max-width:668px;margin:auto;border:0;padding:20px 24px 0}
+.participant-experience .builder-header h1{font-size:clamp(19px,4vw,25px)}
+.participant-experience .builder-header .builder-kicker{font-size:9px}
+.participant-experience .builder-content{padding-top:0}
+@media(max-width:430px){.participant-experience .builder-header{padding:12px 16px 0}.participant-experience .builder-content{padding:0 16px 28px}.her-participant-couple .quiz-visuals{height:100px}.her-quiz-preview .quiz-actions{gap:10px}.her-quiz-preview .quiz-actions button{flex:1 1 110px}.compatibility-builder .her-quiz-preview .her-result-percentage{font-size:64px}}
+@media(prefers-reduced-motion:reduce){.participant-experience,.her-quiz-preview *{animation:none!important;transition:none!important}}

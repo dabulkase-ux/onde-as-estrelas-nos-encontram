@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests',testMatch:'production-smoke.spec.ts',outputDir:'test-results/production-smoke',timeout:180000,expect:{timeout:15000},workers:1,use:{baseURL:'https://onde-as-estrelas-nos-encontram.vercel.app',browserName:'chromium',channel:'msedge',viewport:{width:390,height:850},hasTouch:true,trace:'retain-on-failure',screenshot:'only-on-failure'}});

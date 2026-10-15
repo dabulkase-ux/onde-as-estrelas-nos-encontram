@@ -1,3 +1,4 @@
+import { nextVisibleEscapePoint } from './logic';
 import coupleSource from './CoupleQuiz.tsx?raw';
 import invitationSource from './Invitation.tsx?raw';
 import appSource from '../../App.tsx?raw';
@@ -67,3 +68,14 @@ it('retains the ten approved question texts and forty alternatives in order', ()
  ]);
 });
 
+
+it('never repeats the rendered position when the visible vertical range is constrained',()=>{
+ const previous={x:.95,y:.92*40/120};
+ const nominal=nextEscapePoint(previous,()=>.6);
+ expect({x:nominal.x,y:nominal.y*40/120}).toEqual(previous);
+ const moved=nextVisibleEscapePoint(previous,0,40,120,()=>.6);
+ expect(moved).not.toEqual(previous);expect(moved.y*120).toBeGreaterThanOrEqual(0);expect(moved.y*120).toBeLessThanOrEqual(40);
+});
+it('moves horizontally when only one vertical position is visible',()=>{
+ expect(nextVisibleEscapePoint({x:.95,y:.25},30,30,120)).toEqual({x:.05,y:.25});
+});

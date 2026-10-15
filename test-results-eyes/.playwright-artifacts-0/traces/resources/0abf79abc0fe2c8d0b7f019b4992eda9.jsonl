@@ -1,2 +1,0 @@
-{"type":"receive","time":1791810811733.9941,"opcode":1,"data":"{\"type\":\"connected\"}"}
-{"type":"send","time":1791810841672.1902,"opcode":1,"data":"{\"type\":\"ping\"}"}

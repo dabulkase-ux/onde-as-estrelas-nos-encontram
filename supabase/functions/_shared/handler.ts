@@ -1,6 +1,6 @@
 import { digest, hex, HttpError, validateSubmission, verifyPassword } from './security.ts';
 export type Database = (method: string, path: string, body?: unknown) => Promise<unknown>;
-export interface Settings {origins: string[]; passwordHash: string; db: Database; now?: () => number}
+export interface Settings {origins: string[]; passwordHash: string; herPasswordHash?: string; db: Database; now?: () => number}
 const tables: Record<string,string> = {compatibility:'quiz_attempts',couple:'quiz_attempts',proposal:'romantic_responses',wish:'wishes'};
 export function makeHandler(mode: 'admin' | 'submit', settings: Settings) {
  return async (request: Request) => {
@@ -33,24 +33,37 @@ export function makeHandler(mode: 'admin' | 'submit', settings: Settings) {
     await settings.db('POST',`${table}?on_conflict=submission_id`,row);
     return reply({ok:true},201);
    }
+   const credential=(username:string)=>username==='admin'?settings.passwordHash:settings.herPasswordHash??'';
    if(body.action==='login') {
     await rate('admin-login',5,300);
-    if(!await verifyPassword(body.password,settings.passwordHash)) throw new HttpError(401,'Senha incorreta.');
+    if(Object.keys(body).some(key=>!['action','username','password'].includes(key)))throw new HttpError(400,'Campos não permitidos.');
+    const username=body.username===undefined?'admin':typeof body.username==='string'?body.username:'';
+    const known=['admin','meu-universo-dela'].includes(username);
+    const hash=credential(username);
+    const valid=hash?await verifyPassword(body.password,hash):false;
+    if(!known||!valid)throw new HttpError(401,'Usuário ou senha incorretos.');
     const token=hex(crypto.getRandomValues(new Uint8Array(32)));
     const expiresAt=new Date(now()+15*60*1000).toISOString();
     await settings.db('DELETE',`admin_sessions?expires_at=lte.${encodeURIComponent(new Date(now()).toISOString())}`);
-    await settings.db('POST','admin_sessions',{token_hash:await digest(token),credential_version:await digest(settings.passwordHash),expires_at:expiresAt});
-    return reply({token,expiresAt});
+    await settings.db('POST','admin_sessions',{token_hash:await digest(token),credential_version:await digest(`${username}:${hash}`),username,expires_at:expiresAt});
+    return reply({token,expiresAt,username});
    }
    const token=request.headers.get('Authorization')?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
    if(!token) throw new HttpError(401,'Sessão necessária.');
    const tokenHash=await digest(token);
-   const sessions=await settings.db('GET',`admin_sessions?token_hash=eq.${tokenHash}&select=expires_at,credential_version`) as {expires_at:string;credential_version:string}[];
+   const sessions=await settings.db('GET',`admin_sessions?token_hash=eq.${tokenHash}&select=expires_at,credential_version,username`) as {expires_at:string;credential_version:string;username:string}[];
    const session=sessions[0];
-   if(!session || Date.parse(session.expires_at)<=now() || session.credential_version!==await digest(settings.passwordHash)) throw new HttpError(401,'Sua sessão expirou. Entre novamente.');
+   if(!session || Date.parse(session.expires_at)<=now() || !['admin','meu-universo-dela'].includes(session.username)||session.credential_version!==await digest(`${session.username}:${credential(session.username)}`)) throw new HttpError(401,'Sua sessão expirou. Entre novamente.');
+   if(Object.keys(body).some(key=>!['action','kind','page'].includes(key)))throw new HttpError(400,'Campos não permitidos.');
    if(body.action==='logout') {await settings.db('DELETE',`admin_sessions?token_hash=eq.${tokenHash}`);return reply({ok:true});}
    if(body.action!=='data' || typeof body.kind!=='string' || !Object.hasOwn(tables,body.kind) || !Number.isSafeInteger(body.page) || Number(body.page)<0 || Number(body.page)>100000) throw new HttpError(400,'Consulta inválida.');
    await rate('admin-read',120,60);
+   if(session.username==='meu-universo-dela'){
+    const overview=await settings.db('POST','rpc/her_admin_overview',{});
+    if(body.kind==='wish'||body.kind==='proposal')return reply({overview,rows:[],hasMore:false});
+    const rows=await settings.db('POST','rpc/her_admin_records',{p_kind:body.kind,p_offset:Number(body.page)*50}) as unknown[];
+    return reply({overview,rows:rows.slice(0,50),hasMore:rows.length>50});
+   }
    const filter=body.kind==='compatibility'||body.kind==='couple'?`&quiz_type=eq.${body.kind}`:'';
    const [overview, rows]=await Promise.all([
     settings.db('POST','rpc/admin_overview',{}),

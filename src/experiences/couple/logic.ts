@@ -27,6 +27,15 @@ export function nextEscapePoint(previous: Point, random = Math.random): Point {
  return distant[Math.min(distant.length - 1, Math.max(0, Math.floor(random() * distant.length)))];
 }
 
+export function nextVisibleEscapePoint(previous:Point,minY:number,maxY:number,spaceY:number,random=Math.random):Point {
+ if(maxY===minY)return {x:previous.x<.5?.95:.05,y:spaceY>0?minY/spaceY:0};
+ // Compare points in the visible range, before mapping back to the full area.
+ // Otherwise a different nominal point can land at the same rendered position.
+ const relative={x:previous.x,y:Math.max(0,Math.min(1,(previous.y*spaceY-minY)/(maxY-minY)))};
+ const candidate=nextEscapePoint(relative,random);
+ return {x:candidate.x,y:(minY+candidate.y*(maxY-minY))/spaceY};
+}
+
 
 export function getAnswerFeedback(index: number, answer: Letter): { kind: 'correct' | 'special' | 'standard'; text: string } {
  if (isCorrect(index, answer)) return { kind: 'correct', text: coupleQuestions[index].feedback };

@@ -1,0 +1,295 @@
+{
+  "couple": {
+    "status": "completed",
+    "version": 1,
+    "introSeen": true,
+    "questions": [
+      {
+        "id": "d0181180-903b-4bad-812c-37fab81d76d0",
+        "text": "Validação técnica — couple — pergunta 1",
+        "comment": "Comentário de validação técnica.",
+        "options": [
+          {
+            "id": "45420738-e8a1-45aa-97e1-9514e1584b94",
+            "text": "Alternativa de teste 1",
+            "correct": false
+          },
+          {
+            "id": "82b60b45-6b75-4c0f-ac1a-8dbe6f7587bb",
+            "text": "Alternativa de teste 2",
+            "correct": true
+          },
+          {
+            "id": "54db0247-8933-46a8-b5f5-9645181b7f54",
+            "text": "Alternativa de teste 3",
+            "correct": false
+          },
+          {
+            "id": "66879fc4-9fce-4953-9394-295eefba01f3",
+            "text": "Alternativa de teste 4",
+            "correct": true
+          }
+        ]
+      },
+      {
+        "id": "2ae23a15-63a8-4728-a8d1-08d9e3fc1f4d",
+        "text": "Validação técnica — couple — pergunta 2",
+        "comment": "Comentário de validação técnica.",
+        "options": [
+          {
+            "id": "039a7bb9-af90-4f65-9c6f-fc0482cb7869",
+            "text": "Alternativa de teste 1",
+            "correct": false
+          },
+          {
+            "id": "4f21ce04-0c61-4504-83ef-431ae43e3a8f",
+            "text": "Alternativa de teste 2",
+            "correct": true
+          },
+          {
+            "id": "af6c3ae7-497f-4890-b849-582716742e0b",
+            "text": "Alternativa de teste 3",
+            "correct": false
+          },
+          {
+            "id": "e5503d2b-4d91-4a27-98c1-336683e8747f",
+            "text": "Alternativa de teste 4",
+            "correct": true
+          }
+        ]
+      },
+      {
+        "id": "baebfc40-8a6a-42aa-8e24-6824bbdffd88",
+        "text": "Validação técnica — couple — pergunta 3",
+        "comment": "Comentário de validação técnica.",
+        "options": [
+          {
+            "id": "98694c30-94eb-450a-90bc-b7a79c08ff7e",
+            "text": "Alternativa de teste 1",
+            "correct": false
+          },
+          {
+            "id": "c61514eb-244c-4fcd-b756-9d1f05ffe039",
+            "text": "Alternativa de teste 2",
+            "correct": true
+          },
+          {
+            "id": "fb46fc5c-daab-4051-8a87-6a3a656e2620",
+            "text": "Alternativa de teste 3",
+            "correct": false
+          },
+          {
+            "id": "af72d6de-b842-4719-9015-987996abf718",
+            "text": "Alternativa de teste 4",
+            "correct": true
+          }
+        ]
+      },
+      {
+        "id": "fdd03f1c-ea29-4364-b45a-6e9b6f8e135e",
+        "text": "Validação técnica — couple — pergunta 4",
+        "comment": "Comentário de validação técnica.",
+        "options": [
+          {
+            "id": "bafdeb52-5e12-4bc6-88fc-db599e8813c0",
+            "text": "Alternativa de teste 1",
+            "correct": false
+          },
+          {
+            "id": "1bc079ba-896a-4bf8-9dfa-b59ceb6075a2",
+            "text": "Alternativa de teste 2",
+            "correct": true
+          },
+          {
+            "id": "7bebd6bf-d548-4f34-bdb1-6ec3d4ae91cb",
+            "text": "Alternativa de teste 3",
+            "correct": false
+          },
+          {
+            "id": "dde0956b-0fd5-41c5-9098-451bd8696e60",
+            "text": "Alternativa de teste 4",
+            "correct": true
+          }
+        ]
+      },
+      {
+        "id": "e26d0756-16ce-46c7-b157-0d0a79213eb0",
+        "text": "Validação técnica — couple — pergunta 5",
+        "comment": "Comentário de validação técnica.",
+        "options": [
+          {
+            "id": "20266fdf-ad41-4314-9b88-92a5bdc06754",
+            "text": "Alternativa de teste 1",
+            "correct": false
+          },
+          {
+            "id": "97dc76a0-6197-49c8-95e0-b4f98f7106e4",
+            "text": "Alternativa de teste 2",
+            "correct": true
+          },
+          {
+            "id": "46d4e9c0-03d1-45c9-a5d3-d1dfefea3dbd",
+            "text": "Alternativa de teste 3",
+            "correct": false
+          },
+          {
+            "id": "e6040b97-5945-407e-9166-39f8a0adb731",
+            "text": "Alternativa de teste 4",
+            "correct": true
+          }
+        ]
+      }
+    ]
+  },
+  "galaxy": {
+    "stage": "ready",
+    "colors": [
+      "rosa",
+      "turquesa"
+    ],
+    "created": true,
+    "version": 1,
+    "accepted": true
+  },
+  "version": 1,
+  "compatibility": {
+    "status": "completed",
+    "version": 1,
+    "introSeen": true,
+    "questions": [
+      {
+        "id": "46f4f96c-2ca1-4a10-83db-e5a8662d5397",
+        "text": "Validação técnica — compatibility — pergunta 1",
+        "options": [
+          {
+            "id": "d3e2fdf9-4a8a-4698-8818-9b6d791a6ce7",
+            "text": "Alternativa de teste 1",
+            "weight": 1
+          },
+          {
+            "id": "0aeadecf-5df9-4fa5-aa08-b4d6ad2f964b",
+            "text": "Alternativa de teste 2",
+            "weight": 2
+          },
+          {
+            "id": "1e84c764-7a42-47ef-8fed-52484c74d68b",
+            "text": "Alternativa de teste 3",
+            "weight": 3
+          },
+          {
+            "id": "61804b3c-66fd-4a94-9668-de5e96e6fe02",
+            "text": "Alternativa de teste 4",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "id": "bfc6dc34-446b-4221-8f82-94552d38329b",
+        "text": "Validação técnica — compatibility — pergunta 2",
+        "options": [
+          {
+            "id": "d88bf3c2-e86b-4f38-b6fe-757ad9d6adec",
+            "text": "Alternativa de teste 1",
+            "weight": 1
+          },
+          {
+            "id": "2d1a1828-0100-4941-8cbb-e0b9afc7ba02",
+            "text": "Alternativa de teste 2",
+            "weight": 2
+          },
+          {
+            "id": "ac1bf5ac-7d36-4426-8b10-d78a8951d012",
+            "text": "Alternativa de teste 3",
+            "weight": 3
+          },
+          {
+            "id": "a0a7eb9c-e918-4bbe-9dda-f42e251bd2b2",
+            "text": "Alternativa de teste 4",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "id": "4a4efbf7-1cd3-4058-b19a-b67411ad5997",
+        "text": "Validação técnica — compatibility — pergunta 3",
+        "options": [
+          {
+            "id": "c4820f7c-8df1-413e-8350-1973b845c914",
+            "text": "Alternativa de teste 1",
+            "weight": 1
+          },
+          {
+            "id": "48a2220e-8a13-4e93-8333-872f43fc2f1d",
+            "text": "Alternativa de teste 2",
+            "weight": 2
+          },
+          {
+            "id": "dc45bb31-173c-4ff5-8121-44c84a08949a",
+            "text": "Alternativa de teste 3",
+            "weight": 3
+          },
+          {
+            "id": "dc6cde2d-57be-4320-82af-3bec4a90dd00",
+            "text": "Alternativa de teste 4",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "id": "8c33ca16-a502-46ae-a35a-42fcc4953c65",
+        "text": "Validação técnica — compatibility — pergunta 4",
+        "options": [
+          {
+            "id": "3db79048-c74f-4ca1-bcfa-9385c63f2a24",
+            "text": "Alternativa de teste 1",
+            "weight": 1
+          },
+          {
+            "id": "2d897197-82fd-49a5-9a86-83d95ffa0822",
+            "text": "Alternativa de teste 2",
+            "weight": 2
+          },
+          {
+            "id": "c994bfde-b032-427e-afb7-d4a72c16742d",
+            "text": "Alternativa de teste 3",
+            "weight": 3
+          },
+          {
+            "id": "76c3dc61-7e22-4d5f-89c6-aa22cb298569",
+            "text": "Alternativa de teste 4",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "id": "791ccca1-0036-4492-9a63-91a522b28570",
+        "text": "Validação técnica — compatibility — pergunta 5",
+        "options": [
+          {
+            "id": "86b05441-67f8-4968-81f3-35fab0ce5ed9",
+            "text": "Alternativa de teste 1",
+            "weight": 1
+          },
+          {
+            "id": "6eb67b2c-4005-4f14-b0f6-468226c7cfaa",
+            "text": "Alternativa de teste 2",
+            "weight": 2
+          },
+          {
+            "id": "64a6d2c3-2032-4c65-b1b5-e03ad6586405",
+            "text": "Alternativa de teste 3",
+            "weight": 3
+          },
+          {
+            "id": "f9fc2d97-a7db-4d95-8725-272a86aa0fd4",
+            "text": "Alternativa de teste 4",
+            "weight": 4
+          }
+        ]
+      }
+    ]
+  },
+  "configuration": {
+    "generator": "spiral-v1"
+  }
+}

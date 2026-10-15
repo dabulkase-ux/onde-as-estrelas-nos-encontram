@@ -11,5 +11,5 @@ export function settingsFromEnv(env: {get: (key: string) => string | undefined})
   if(!response.ok) throw new Error('Database unavailable');
   const text=await response.text();return text?JSON.parse(text):null;
  };
- return {db,passwordHash:env.get('ADMIN_PASSWORD_HASH')??'',origins:(env.get('ALLOWED_ORIGINS')??'').split(',').map(s=>s.trim()).filter(Boolean)};
+ return {db,passwordHash:env.get('ADMIN_PASSWORD_HASH')??'',herPasswordHash:env.get('ADMIN_HER_PASSWORD_HASH')??'',origins:(env.get('ALLOWED_ORIGINS')??'').split(',').map(s=>s.trim()).filter(Boolean)};
 }

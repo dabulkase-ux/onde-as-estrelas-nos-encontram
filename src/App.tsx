@@ -1,4 +1,9 @@
+import { remoteEnabled } from './experiences/herUniverse/remote/config';
 import { EyesExperience } from './experiences/eyes/EyesExperience';
+import { HerUniverse } from './experiences/herUniverse/HerUniverse';
+import { herProgressStore, type HerProgress } from './experiences/herUniverse/progress';
+import { loadUniverseView } from './experiences/herUniverse/view/data';
+import { EmptyUniverseView, ExplorationView } from './experiences/herUniverse/view/ExplorationView';
 import { EyesEncounter, eyesUnlocked, eyesStarted, isEyesFinishOverride, saveEyesStarted, saveEyesWatched } from './experiences/eyes/progress';
 import { readCoupleProgress } from './experiences/couple/logic';
 import WishExperience, { WishInvitation } from './experiences/wishes/WishExperience';
@@ -32,9 +37,56 @@ const LetterReader = lazy(() => import('./experiences/letters/LetterReader'));
 const CoupleQuiz = lazy(() => import('./experiences/couple/CoupleQuiz'));
 const CompatibilityQuiz = lazy(() => import('./experiences/compatibility/CompatibilityQuiz'));
 const Cosmos = lazy(() => import('./graphics/Cosmos'));
+const CompatibilityBuilder = lazy(() => import('./experiences/herCompatibility/CompatibilityBuilder'));
+const HerCoupleBuilder = lazy(() => import('./experiences/herCouple/CoupleBuilder'));
+const ParticipantExperience = lazy(() => import('./experiences/herUniverse/view/ParticipantExperience'));
+const PublishedUniverse = lazy(() => import('./experiences/herUniverse/remote/PublishedUniverse'));
+const CreatorRecovery = lazy(()=>import('./experiences/herUniverse/remote/CreatorRecovery'));
+const CreatorCloudPanel = lazy(() => import('./experiences/herUniverse/remote/CreatorCloudPanel'));
 export function App() {
-  const finishEyesOverride = isEyesFinishOverride(window.location.search);
-  const [act, dispatch] = useReducer(actReducer, 'lock'); const [scan, setScan] = useState(0); const [sound, setSoundState] = useState(false); const [preload, setPreload] = useState(false);
+  const [herRoute,setHerRoute]=useState(()=>['/universo-dela','/universo-dela/visao'].includes(window.location.pathname.replace(/\/$/,'')));
+  const [herView,setHerView]=useState(()=>window.location.pathname.replace(/\/$/,'')==='/universo-dela/visao');
+  const [herProgress,setHerProgress]=useState(herProgressStore.read);
+  const [herViewData,setHerViewData]=useState(loadUniverseView);
+  const [storageFailed,setStorageFailed]=useState(false);
+  const [herTravelReady,setHerTravelReady]=useState(false);
+  const [herCreationReady,setHerCreationReady]=useState(false);
+  const [herQuizOpen,setHerQuizOpen]=useState(false);
+  const [herCoupleOpen,setHerCoupleOpen]=useState(false);
+  const herCoupleAccess=useRef<HTMLButtonElement>(null);
+  const openHerCouple=useCallback(()=>setHerCoupleOpen(true),[]);
+  const closeHerCouple=useCallback(()=>setHerCoupleOpen(false),[]);
+  const projectHerCouple=useCallback((point:GardenProjection)=>{
+    const node=herCoupleAccess.current;if(!node)return;
+    node.style.left=`${point.x}px`;node.style.top=`${point.y}px`;node.dataset.onscreen=String(point.visible);
+  },[]);
+  const herQuizAccess=useRef<HTMLButtonElement>(null);
+  const openHerQuiz=useCallback(()=>setHerQuizOpen(true),[]);
+  const closeHerQuiz=useCallback(()=>setHerQuizOpen(false),[]);
+  const projectHerQuiz=useCallback((point:GardenProjection)=>{
+    const node=herQuizAccess.current;if(!node)return;
+    node.style.left=`${point.x}px`;node.style.top=`${point.y}px`;node.dataset.onscreen=String(point.visible);
+  },[]);
+  const herActive=herRoute&&herProgress.accepted&&(!herView||herProgress.created);
+  const navigateHer=(view:boolean)=>{
+    setHerQuizOpen(false);setHerCoupleOpen(false);setHerViewData(loadUniverseView(herProgress));
+    window.history.pushState({},'',view?`/universo-dela/visao${remoteEnabled?'?preview=local':''}`:'/universo-dela');setHerRoute(true);setHerView(view);
+  };
+  const changeHer=useCallback((next:HerProgress)=>{setHerProgress(next);setStorageFailed(!herProgressStore.save(next));},[]);
+  const acceptHer=useCallback(()=>{const previous=herProgressStore.read();changeHer(previous.accepted?previous:{...previous,accepted:true,stage:'travel',dialogue:previous.dialogue??0});window.history.pushState({},'','/universo-dela');setHerRoute(true);},[changeHer]);
+  const herArrived=useCallback(()=>setHerTravelReady(true),[]);
+  const herCreated=useCallback(()=>setHerCreationReady(true),[]);
+  useEffect(()=>{
+    if(!herActive || (herProgress.stage!=='travel' && herProgress.stage!=='creating'))return;
+    const travel=herProgress.stage==='travel';
+    if(travel)setHerTravelReady(false);else setHerCreationReady(false);
+    // Failure recovery only releases the visual gate; it never acknowledges speech.
+    const timer=setTimeout(()=>{if(travel)setHerTravelReady(true);else setHerCreationReady(true);},travel?18000:10000);
+    return()=>clearTimeout(timer);
+  },[herActive,herProgress.stage]);
+  useEffect(()=>{const pop=()=>{const path=window.location.pathname.replace(/\/$/,'');const progress=herProgressStore.read();setHerRoute(['/universo-dela','/universo-dela/visao'].includes(path));setHerView(path==='/universo-dela/visao');setHerProgress(progress);setHerViewData(loadUniverseView(progress));setHerQuizOpen(false);setHerCoupleOpen(false);};window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop);},[]);
+  const finishEyesOverride = !herRoute && isEyesFinishOverride(window.location.search);
+  const [act, dispatch] = useReducer(actReducer, herRoute && herProgress.accepted ? 'universe' : 'lock'); const [scan, setScan] = useState(0); const [sound, setSoundState] = useState(false); const [preload, setPreload] = useState(false);
   const [navigation, setNavigation] = useState<Navigation>({phase:'GALAXY_IDLE', destination:'compatibility', skip:false, gardenEntered:false});
   const navigationRef = useRef(navigation); navigationRef.current = navigation;
   const [eyesSeen,setEyesSeen]=useState(eyesStarted);
@@ -155,8 +207,8 @@ export function App() {
       setLettersRead(previous => previous.includes(id) ? previous : [...previous,id]);
     }
   }, []);
-  useEffect(() => { saveLetters(lettersRead); }, [lettersRead]);
-  useEffect(() => { saveBlackHoleProgress(blackHoleProgress); }, [blackHoleProgress]);
+  useEffect(() => { if(!herRoute)saveLetters(lettersRead); }, [lettersRead,herRoute]);
+  useEffect(() => { if(!herRoute)saveBlackHoleProgress(blackHoleProgress); }, [blackHoleProgress,herRoute]);
   useEffect(() => {
     if (navigation.phase !== 'GALAXY_IDLE') return;
     const frame = requestAnimationFrame(() => {
@@ -196,7 +248,7 @@ export function App() {
   const wishOpen = navigation.phase === 'WISH_ACTIVE';
   const eyesActive=navigation.phase==='EYES_ACTIVE';
   const unlocked=eyesUnlocked(lettersRead,quizCompleted,coupleCompleted,blackHoleProgress);
-  const encounter = useWishEncounter(!finishEyesOverride && !eyesHint && act === 'universe' && introDismissed && navigation.phase === 'GALAXY_IDLE');
+  const encounter = useWishEncounter(!herActive && !finishEyesOverride && !eyesHint && act === 'universe' && introDismissed && navigation.phase === 'GALAXY_IDLE');
   const startEyes=useCallback(()=>{
     if(navigationRef.current.phase!=='GALAXY_IDLE')return;
     setEyesReady(false);setEyesHint(false);setEyesSeen(true);
@@ -225,22 +277,31 @@ export function App() {
     let last=performance.now();
     const timer=setInterval(()=>{
       const now=performance.now();
-      const eligible=!finishEyesOverride&&unlocked&&!eyesSeen&&!lettersFallback&&act==='universe'&&introDismissed&&navigationRef.current.phase==='GALAXY_IDLE'&&!encounter.invited;
+      const eligible=!herActive&&!finishEyesOverride&&unlocked&&!eyesSeen&&!lettersFallback&&act==='universe'&&introDismissed&&navigationRef.current.phase==='GALAXY_IDLE'&&!encounter.invited;
       const active=!document.hidden&&document.hasFocus()&&now-lastEyeActivity.current<5000;
       const launch=eyeClock.current.tick(now-last,eligible,active);last=now;
       setEyesHint(eligible&&eyeClock.current.elapsed>=7000);
       if(launch && !eyeInteracting.current && eyeKeys.current.size===0 && now-lastEyeActivity.current>=500) {eyeClock.current.elapsed=0;startEyes();}
     },250);
     return()=>clearInterval(timer);
-  },[finishEyesOverride,unlocked,eyesSeen,lettersFallback,act,introDismissed,encounter.invited,startEyes]);
+  },[herActive,finishEyesOverride,unlocked,eyesSeen,lettersFallback,act,introDismissed,encounter.invited,startEyes]);
   const [wishDelivered,setWishDelivered] = useState(false);
   const acceptWish = () => { if(!encounter.invited || navigationRef.current.phase !== 'GALAXY_IDLE') return; encounter.dismiss();setWishDelivered(false);travel('wish'); };
   const wishJourney = navigation.destination === 'wish' && navigation.phase !== 'GALAXY_IDLE';
   const shootingState = wishJourney ? wishDelivered && navigation.phase === 'WISH_ACTIVE' ? 'delivered' : 'held' : encounter.invited ? 'invited' : 'hidden';
   const chapter = ['lock','unlocking'].includes(act) ? 0 : ['narrative','scan','recognized','love'].includes(act) ? 1 : 2;
   const toggleSound = () => { try { setSound(!sound); setSoundState(!sound); if (!sound) feedback('tap'); } catch { setSoundState(false); } };
-  return <div onPointerDownCapture={()=>{eyeInteracting.current=true;}} onPointerUpCapture={()=>{eyeInteracting.current=false;}} onPointerCancelCapture={()=>{eyeInteracting.current=false;}} onWheelCapture={()=>{lastEyeActivity.current=performance.now();}} onPointerMoveCapture={()=>{lastEyeActivity.current=performance.now();}} onKeyDownCapture={event=>{if(['Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-'].includes(event.key)){lastEyeActivity.current=performance.now();eyeKeys.current.add(event.key);}}} onKeyUpCapture={event=>{eyeKeys.current.delete(event.key);}} onBlurCapture={()=>{eyeKeys.current.clear();}} className={`${eyesActive ? 'eyes-open' : ''} experience act-${act} ${quizOpen ? 'quiz-open' : ''} ${coupleOpen ? 'couple-open' : ''} ${wishOpen ? 'wish-open' : ''} ${letterOpen ? 'letter-open' : ''} ${travelling ? 'is-travelling' : ''} ${gardenActive || returningFromGarden ? 'garden-open' : ''} ${gardenInvitation ? 'portal-prompt-open' : ''} ${blackHoleOpen || blackHoleJourney ? 'black-hole-open' : ''} ${introDismissed ? 'is-exploring' : ''} ${reduced ? 'reduced-motion' : ''}`} data-act={act} data-navigation={navigation.phase}>
-    <Ambient/>{(preload || act !== 'lock') && <Suspense fallback={null}><Cosmos eyesWatched={eyesSeen} eyesHint={eyesHint} onEyesReady={readyEyes} onEyesProjection={projectEyes} act={act} scan={scan} reduced={reduced} onFormed={formed} shootingState={shootingState} onWish={acceptWish} onGarden={openGarden} onGardenProjection={projectGarden} onBlackHole={openBlackHole} onBlackHoleFragment={selectBlackHoleFragment} onBlackHoleAccessProjection={projectBlackHoleAccess} onBlackHoleProjection={projectBlackHole} blackHoleDiscovered={blackHoleProgress.discovered} blackHoleStarFormed={blackHoleProgress.starFormed} onBlackHoleStarFormed={blackHoleStarFormed} quizOpen={eyesActive || quizOpen || coupleOpen || letterOpen || wishOpen || gardenInvitation || gardenActive || blackHoleOpen} compatibilityCompleted={quizCompleted} onCompatibility={openQuiz} onCouple={openCouple} navigation={navigation} onTravelComplete={travelComplete} lettersRead={lettersRead} onLetter={travel} onLetterProjection={projectLetters} onLettersFallback={onLettersFallback}/></Suspense>}
+  if(herRoute&&herView&&remoteEnabled&&new URLSearchParams(window.location.search).get('preview')!=='local')return <Suspense fallback={<p role="status">Encontrando suas estrelas...</p>}><PublishedUniverse onReturn={()=>navigateHer(false)}/></Suspense>;
+  if(herRoute&&herView&&(!herViewData.galaxy||!herActive))return <EmptyUniverseView onReturn={()=>navigateHer(false)}/>;
+  if(herRoute&&!herProgress.accepted)return <section className="her-universe" style={{pointerEvents:'auto'}}><div className="nexus-dialog"><h1>Há um universo esperando por você.</h1><p>Comece pelo universo original. Cada estrela tem seu próprio tempo.</p><a href="/">Conhecer o universo original</a>{remoteEnabled&&<Suspense fallback={null}><CreatorRecovery/></Suspense>}</div></section>;
+  return <div onPointerDownCapture={()=>{eyeInteracting.current=true;}} onPointerUpCapture={()=>{eyeInteracting.current=false;}} onPointerCancelCapture={()=>{eyeInteracting.current=false;}} onWheelCapture={()=>{lastEyeActivity.current=performance.now();}} onPointerMoveCapture={()=>{lastEyeActivity.current=performance.now();}} onKeyDownCapture={event=>{if(['Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-'].includes(event.key)){lastEyeActivity.current=performance.now();eyeKeys.current.add(event.key);}}} onKeyUpCapture={event=>{eyeKeys.current.delete(event.key);}} onBlurCapture={()=>{eyeKeys.current.clear();}} className={`${herView ? 'her-view' : ''} ${herActive ? 'her-active' : ''} ${eyesActive ? 'eyes-open' : ''} experience act-${act} ${quizOpen ? 'quiz-open' : ''} ${coupleOpen ? 'couple-open' : ''} ${wishOpen ? 'wish-open' : ''} ${letterOpen ? 'letter-open' : ''} ${travelling ? 'is-travelling' : ''} ${gardenActive || returningFromGarden ? 'garden-open' : ''} ${gardenInvitation ? 'portal-prompt-open' : ''} ${blackHoleOpen || blackHoleJourney ? 'black-hole-open' : ''} ${introDismissed ? 'is-exploring' : ''} ${reduced ? 'reduced-motion' : ''}`} data-act={act} data-navigation={navigation.phase}>
+    {herActive&&!herView&&remoteEnabled&&<Suspense fallback={null}><CreatorCloudPanel/></Suspense>}
+    {herActive && herView && <ExplorationView data={herViewData} onReturn={()=>navigateHer(false)} onOpenQuiz={openHerQuiz} onOpenCouple={openHerCouple} quizOpen={herQuizOpen} coupleOpen={herCoupleOpen} quizAccess={herQuizAccess} coupleAccess={herCoupleAccess}/>}
+    {herActive && !herView && <HerUniverse progress={herProgress} onChange={changeHer} reduced={reduced} storageFailed={storageFailed} travelReady={herTravelReady} creationReady={herCreationReady} quizOpen={herQuizOpen} onOpenQuiz={openHerQuiz} quizAccess={herQuizAccess} coupleOpen={herCoupleOpen} onOpenCouple={openHerCouple} coupleAccess={herCoupleAccess} onView={()=>navigateHer(true)}/>}<Ambient/>{(preload || act !== 'lock') && <Suspense fallback={null}><Cosmos herView={herView} herCompatibilityAvailable={Boolean(herViewData.compatibility)} herCoupleAvailable={Boolean(herViewData.couple)} onHerCouple={openHerCouple} onHerCoupleProjection={projectHerCouple} herQuizOpen={herQuizOpen || herCoupleOpen} onHerQuiz={openHerQuiz} onHerQuizProjection={projectHerQuiz} herUniverse={herActive ? herProgress : undefined} onHerArrived={herArrived} onHerCreated={herCreated} eyesWatched={eyesSeen} eyesHint={eyesHint} onEyesReady={readyEyes} onEyesProjection={projectEyes} act={act} scan={scan} reduced={reduced} onFormed={formed} shootingState={shootingState} onWish={acceptWish} onGarden={openGarden} onGardenProjection={projectGarden} onBlackHole={openBlackHole} onBlackHoleFragment={selectBlackHoleFragment} onBlackHoleAccessProjection={projectBlackHoleAccess} onBlackHoleProjection={projectBlackHole} blackHoleDiscovered={blackHoleProgress.discovered} blackHoleStarFormed={blackHoleProgress.starFormed} onBlackHoleStarFormed={blackHoleStarFormed} quizOpen={!herActive && (eyesActive || quizOpen || coupleOpen || letterOpen || wishOpen || gardenInvitation || gardenActive || blackHoleOpen)} compatibilityCompleted={quizCompleted} onCompatibility={openQuiz} onCouple={openCouple} navigation={herActive ? undefined : navigation} onTravelComplete={travelComplete} lettersRead={lettersRead} onLetter={travel} onLetterProjection={projectLetters} onLettersFallback={onLettersFallback}/></Suspense>}
+    {herActive && !herView && herQuizOpen && <Suspense fallback={<p role="status">Abrindo sua constelação...</p>}><CompatibilityBuilder reduced={reduced} onExit={closeHerQuiz}/></Suspense>}
+    {herActive && !herView && herCoupleOpen && <Suspense fallback={<p role="status">Abrindo seu desafio...</p>}><HerCoupleBuilder reduced={reduced} onExit={closeHerCouple}/></Suspense>}
+    {herActive && herView && herQuizOpen && herViewData.compatibility && <Suspense fallback={<p role="status">Abrindo sua experiência...</p>}><ParticipantExperience kind="compatibility" questions={herViewData.compatibility} onExit={closeHerQuiz}/></Suspense>}
+    {herActive && herView && herCoupleOpen && herViewData.couple && <Suspense fallback={<p role="status">Abrindo sua experiência...</p>}><ParticipantExperience kind="couple" questions={herViewData.couple} onExit={closeHerCouple}/></Suspense>}
     <header className="site-header" inert={eyesActive || travelling || letterOpen || wishOpen || gardenJourney || blackHoleJourney}><div className="wordmark" aria-label={c.brand}><svg viewBox="0 0 28 28" width="28" height="28" fill="none" aria-hidden="true"><ellipse cx="14" cy="14" rx="13" ry="5" transform="rotate(-40 14 14)" stroke="currentColor" strokeWidth=".8"/><circle cx="14" cy="14" r="2.5" fill="currentColor"/></svg>{c.brand}<span> / </span><small>{c.brandNote}</small></div><button className={`sound-toggle ${sound ? 'sound-on' : ''}`} onClick={toggleSound} aria-label={sound ? c.labels.audioOff : c.labels.audioOn} aria-pressed={sound}><span/><span/><span/><span/></button></header>
     <main ref={main} tabIndex={-1} inert={eyesActive || quizOpen || coupleOpen || letterOpen || wishOpen || gardenInvitation || gardenActive || blackHoleOpen || travelling}>
       {(act === 'lock' || act === 'unlocking') && <Lock opening={act === 'unlocking'} onUnlock={advance}/>}
@@ -263,7 +324,7 @@ export function App() {
       </div>}
       {act==='universe'&&eyesSeen&&!lettersFallback&&<button ref={eyesAccess} className="eyes-revisit" data-onscreen="false" aria-label="Rever o olhar entre as estrelas" onClick={startEyes}><svg viewBox="0 0 80 40" fill="none" stroke="currentColor" aria-hidden="true"><path d="M3 20Q17 6 32 20Q17 33 3 20M48 20Q63 6 77 20Q63 33 48 20"/><circle cx="18" cy="20" r="4"/><circle cx="63" cy="20" r="4"/></svg></button>}
     </main>
-    {eyesActive&&<EyesExperience ready={eyesReady} onExit={exitEyes}/>}
+    {eyesActive&&<EyesExperience ready={eyesReady} onExit={exitEyes} onAccept={acceptHer}/>}
     <WishInvitation visible={encounter.invited && navigation.phase === 'GALAXY_IDLE'} onAccept={acceptWish} onDismiss={() => {encounter.dismiss();main.current?.focus({preventScroll:true});}}/>
     {gardenInvitation && <section className="garden-portal-invitation" role="dialog" aria-modal="true" aria-labelledby="garden-portal-question">
       <p id="garden-portal-question">Existe um lugar que eu guardei especialmente pra você. Quer entrar?</p>

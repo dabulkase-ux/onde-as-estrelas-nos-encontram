@@ -1,0 +1,2 @@
+export const localUniverseChangeEvent='meu-universo:local-universe-change';
+export function notifyLocalUniverseChange(){if(typeof window!=='undefined')window.dispatchEvent(new Event(localUniverseChangeEvent));}

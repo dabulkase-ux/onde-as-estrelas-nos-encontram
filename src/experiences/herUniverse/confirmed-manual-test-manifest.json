@@ -1,0 +1,159 @@
+{
+  "couple": {
+    "status": "draft",
+    "version": 1,
+    "introSeen": false,
+    "questions": []
+  },
+  "galaxy": {
+    "stage": "ready",
+    "colors": [
+      "azul",
+      "turquesa"
+    ],
+    "created": true,
+    "version": 1,
+    "accepted": true
+  },
+  "version": 1,
+  "compatibility": {
+    "status": "completed",
+    "version": 1,
+    "introSeen": true,
+    "questions": [
+      {
+        "id": "3c0189d7-5d09-402b-b273-be98d4d56f71",
+        "text": "A",
+        "options": [
+          {
+            "id": "4da2848f-b7ba-41a6-874e-c742e4dea673",
+            "text": "A",
+            "weight": 1
+          },
+          {
+            "id": "dbd5c32b-18de-4b4f-8be6-6e877998ffa3",
+            "text": "A",
+            "weight": 2
+          },
+          {
+            "id": "e20b55b3-b912-4008-9cef-0baa099f2c23",
+            "text": "A",
+            "weight": 3
+          },
+          {
+            "id": "18473fca-9c5e-48f7-bdf9-f07e30aafce6",
+            "text": "A",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "id": "e0332e35-4a32-4992-a173-7f58ca41e6a2",
+        "text": "A",
+        "options": [
+          {
+            "id": "25ca6397-44e8-4525-8d2c-c4f0c045fc51",
+            "text": "A",
+            "weight": 1
+          },
+          {
+            "id": "51fa19ea-8192-4ef5-8945-08de4a72fbbf",
+            "text": "A",
+            "weight": 2
+          },
+          {
+            "id": "07c2dc79-d3f2-409b-992f-efe1c2f3264c",
+            "text": "A",
+            "weight": 3
+          },
+          {
+            "id": "ba2f2c7e-e3f5-446e-b344-09d33c4ca158",
+            "text": "A",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "id": "1e60d0fb-a978-4527-88a8-c0c42833b8d3",
+        "text": "A",
+        "options": [
+          {
+            "id": "26eaeb8f-6e44-463e-9f26-973719f3a469",
+            "text": "A",
+            "weight": 1
+          },
+          {
+            "id": "453c891f-7418-4c42-8bba-f85d66e7e9d7",
+            "text": "A",
+            "weight": 2
+          },
+          {
+            "id": "5d213241-31a9-4be7-bcac-4973c10c1366",
+            "text": "A",
+            "weight": 3
+          },
+          {
+            "id": "917eb0e0-0f2b-418b-a8e4-0c0ebf22c2b4",
+            "text": "A",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "id": "fc799d6d-8367-4046-9513-23f17594d699",
+        "text": "Y",
+        "options": [
+          {
+            "id": "9ec748ab-975a-49ea-8755-e25a971305b8",
+            "text": "A",
+            "weight": 1
+          },
+          {
+            "id": "d9eb8f8e-52ea-4499-9bc2-e467713d5628",
+            "text": "A",
+            "weight": 2
+          },
+          {
+            "id": "fa4735a6-8025-442e-8c1b-6a9281673a78",
+            "text": "A",
+            "weight": 3
+          },
+          {
+            "id": "23fa3ea8-496c-498f-a114-56ea249e2778",
+            "text": "A",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "id": "9bd5b615-f5e1-413d-895d-3cd279c92711",
+        "text": "A",
+        "options": [
+          {
+            "id": "e2b2a338-1f1d-4fa3-aad5-f597e3974aa1",
+            "text": "Q",
+            "weight": 1
+          },
+          {
+            "id": "6da13310-1fd6-4baa-8155-d550224c34d9",
+            "text": "A",
+            "weight": 2
+          },
+          {
+            "id": "bb16f631-0571-455e-b0db-65917b375715",
+            "text": "A",
+            "weight": 3
+          },
+          {
+            "id": "b851cf2c-e1fe-4912-8006-44bf971be839",
+            "text": "A",
+            "weight": 4
+          }
+        ]
+      }
+    ]
+  },
+  "configuration": {
+    "generator": "spiral-v1"
+  }
+}

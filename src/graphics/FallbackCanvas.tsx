@@ -2,16 +2,35 @@ import { useEffect, useRef } from 'react';
 import { createParticleData } from './geometry';
 import type { SceneInput } from './engine';
 import { experience as c } from '../config/experience';
+import { palette } from '../experiences/herUniverse/progress';
 export function FallbackCanvas({ input, onFormed, mode, reduced, shootingState }: { input: { current: SceneInput }; onFormed: () => void; mode: SceneInput['mode']; reduced: boolean; shootingState?: SceneInput['shootingState'] }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const waking = useRef(() => {});
-  useEffect(() => { waking.current(); },[shootingState]);
+  const herStage=input.current.herUniverse?.stage;
+  useEffect(() => { waking.current(); },[shootingState,herStage]);
   useEffect(() => {
     const el = canvas.current!; const ctx = el.getContext('2d')!; const data = createParticleData(c.graphics.fallback);
     let frame = 0, last = 0, morph = 0, elapsed = 0; let completed = false; let wake = () => {};
+    let ownStage='', ownTime=0, ownDone=false;
     const resize = () => { el.width = el.clientWidth; el.height = el.clientHeight; wake(); }; const observer = new ResizeObserver(resize); observer.observe(el); resize();
     const draw = (now: number) => {
-      if (document.hidden) return; if (input.current.suspended && input.current.navigation?.destination !== 'wish') { frame = requestAnimationFrame(draw); last = 0; return; }
+      if (document.hidden) return;
+      const her=input.current.herUniverse;
+      if(her) {
+        const dt=last?Math.min(now-last,50):16;last=now;
+        if(ownStage!==her.stage){ownStage=her.stage;ownTime=0;ownDone=false;}ownTime+=dt;
+        ctx.clearRect(0,0,el.width,el.height);
+        const birth=her.stage==='ready'?1:her.stage==='creating'?Math.min(1,ownTime/(reduced?1200:6500)):0;
+        for(let i=0;i<Math.floor(c.graphics.fallback*birth);i++) {
+          const j=i*3;ctx.fillStyle=palette.find(color=>color.id===her.colors[i%her.colors.length])?.hex??'#eef4ff';
+          ctx.beginPath();ctx.arc(el.width/2+data.galaxy[j]*el.width/14,el.height*.32+data.galaxy[j+2]*el.width/32,.7+data.seeds[i],0,Math.PI*2);ctx.fill();
+        }
+        if(!ownDone&&her.stage==='travel'&&ownTime>=(reduced?3000:12500)){ownDone=true;input.current.onHerArrived?.();}
+        if(!ownDone&&her.stage==='creating'&&birth===1){ownDone=true;input.current.onHerCreated?.();}
+        el.dataset.herStage=her.stage;el.dataset.herStarCount=String(Math.floor(c.graphics.fallback*birth));
+        frame=requestAnimationFrame(draw);return;
+      }
+      if (input.current.suspended && input.current.navigation?.destination !== 'wish') { frame = requestAnimationFrame(draw); last = 0; return; }
       const dt = last ? Math.min(now-last,50) : 16; last = now;
       const { scan } = input.current;
       if(mode==='hidden') { ctx.clearRect(0,0,el.width,el.height); return; }

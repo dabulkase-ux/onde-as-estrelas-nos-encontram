@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { nextEscapePoint } from './logic';
+import { nextVisibleEscapePoint } from './logic';
 export function Invitation({ reduced, onAccept, onAttempt, onChoice }: { reduced: boolean; onAccept: () => void; onAttempt?: () => void; onChoice?: () => void }) {
  const [point, setPoint] = useState({x:.5,y:.5}); const [note, setNote] = useState(false);
  const area = useRef<HTMLDivElement>(null);
@@ -15,7 +15,7 @@ export function Invitation({ reduced, onAccept, onAttempt, onChoice }: { reduced
   const maxY = Math.min(spaceY, window.innerHeight - rect.top - 56);
   if (maxY < minY) return;
   lastMove.current = performance.now();
-  setPoint(p => { const candidate = nextEscapePoint(p); return {x:candidate.x,y:(minY + candidate.y * (maxY-minY))/spaceY}; });
+  setPoint(p => nextVisibleEscapePoint(p,minY,maxY,spaceY));
  }, [reduced]);
  useEffect(() => {
  const proximity = (event: PointerEvent) => {

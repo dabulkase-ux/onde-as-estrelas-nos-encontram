@@ -1,4 +1,5 @@
 import { EyesConstellation } from './eyesConstellation';
+import { palette, type HerProgress } from '../experiences/herUniverse/progress';
 import { ShootingStar, type ShootingState } from './shootingStar';
 import * as THREE from 'three';
 import { createEnvelopeTexture } from './envelopeTexture';
@@ -15,7 +16,7 @@ import { fragmentShader, vertexShader } from './shaders';
 import { universeObjects } from './universeObjects';
 
 export interface GardenProjection { x: number; y: number; visible: boolean; }
-export interface SceneInput { eyesWatched?: boolean; eyesHint?: boolean; onEyesReady?: () => void; onEyesProjection?: (point: GardenProjection) => void; shootingState?: ShootingState; onWish?: () => void; mode: 'hidden' | 'fingerprint' | 'galaxy'; scan: number; reduced: boolean; suspended?: boolean; navigation?: Navigation; onTravelComplete?: () => void; compatibilityCompleted?: boolean; lettersRead?: readonly LetterId[]; onLetter?: (id: LetterId) => void; onLetterProjection?: (points: readonly LetterProjection[]) => void; onGarden?: () => void; onGardenProjection?: (projection: GardenProjection) => void; onBlackHole?: () => void; onBlackHoleFragment?: (id: BlackHoleFragmentId) => void; onBlackHoleAccessProjection?: (projection: GardenProjection) => void; onBlackHoleProjection?: (points: readonly BlackHoleProjection[]) => void; blackHoleDiscovered?: readonly BlackHoleFragmentId[]; blackHoleStarFormed?: boolean; onBlackHoleStarFormed?: () => void; onCompatibility?: () => void; onCouple?: () => void; }
+export interface SceneInput { herView?: boolean; herCompatibilityAvailable?: boolean; herCoupleAvailable?: boolean; onHerCouple?: () => void; onHerCoupleProjection?: (point: GardenProjection) => void; herQuizOpen?: boolean; onHerQuiz?: () => void; onHerQuizProjection?: (point: GardenProjection) => void; herUniverse?: HerProgress; onHerArrived?: () => void; onHerCreated?: () => void; eyesWatched?: boolean; eyesHint?: boolean; onEyesReady?: () => void; onEyesProjection?: (point: GardenProjection) => void; shootingState?: ShootingState; onWish?: () => void; mode: 'hidden' | 'fingerprint' | 'galaxy'; scan: number; reduced: boolean; suspended?: boolean; navigation?: Navigation; onTravelComplete?: () => void; compatibilityCompleted?: boolean; lettersRead?: readonly LetterId[]; onLetter?: (id: LetterId) => void; onLetterProjection?: (points: readonly LetterProjection[]) => void; onGarden?: () => void; onGardenProjection?: (projection: GardenProjection) => void; onBlackHole?: () => void; onBlackHoleFragment?: (id: BlackHoleFragmentId) => void; onBlackHoleAccessProjection?: (projection: GardenProjection) => void; onBlackHoleProjection?: (points: readonly BlackHoleProjection[]) => void; blackHoleDiscovered?: readonly BlackHoleFragmentId[]; blackHoleStarFormed?: boolean; onBlackHoleStarFormed?: () => void; onCompatibility?: () => void; onCouple?: () => void; }
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -101,6 +102,16 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
   const texture = new THREE.CanvasTexture(glowCanvas);
   eyes.setTexture(texture);
   const shooting = new ShootingStar(scene, texture);
+  const herStarMaterial=new THREE.SpriteMaterial({map:texture,color:'#c2e2ff',transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+  const herStar=new THREE.Sprite(herStarMaterial);herStar.position.set(0,3,0);herStar.scale.setScalar(.7);herStar.visible=false;
+  herStar.userData={id:'her-compatibility',object:{interactive:true,onSelect:()=>input.current.onHerQuiz?.()}};
+  scene.add(herStar);
+  const herConstellationGeometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-.6,2.5,-.2),herStar.position.clone(),new THREE.Vector3(.7,2.7,.3)]);
+  const herConstellationMaterial=new THREE.LineBasicMaterial({color:'#b8d4ff',transparent:true,opacity:.45});
+  const herConstellation=new THREE.Line(herConstellationGeometry,herConstellationMaterial);herConstellation.visible=false;scene.add(herConstellation);
+  const herCoupleMaterial=new THREE.SpriteMaterial({map:texture,color:'#c2e2ff',transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+  const herCoupleStar=new THREE.Sprite(herCoupleMaterial);herCoupleStar.position.set(0,1.2,0);herCoupleStar.scale.setScalar(.7);herCoupleStar.visible=false;
+  herCoupleStar.userData={id:'her-couple',object:{interactive:true,onSelect:()=>input.current.onHerCouple?.()}};scene.add(herCoupleStar);
 
   const coreMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 });
   const core = new THREE.Sprite(coreMaterial);
@@ -399,6 +410,13 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
   };
 
   const setMarkerPointer = (event: PointerEvent) => {
+    if (input.current.herUniverse) {
+      const rect=canvas.getBoundingClientRect();markerPointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);
+      markerRaycaster.setFromCamera(markerPointer,camera);
+      const hit=input.current.herUniverse.stage==='ready'&&!input.current.herQuizOpen?markerRaycaster.intersectObjects([herStar,herCoupleStar].filter(star=>star.visible))[0]?.object:null;
+      hoveredMarker=hit instanceof THREE.Sprite?hit:null;
+      canvas.style.cursor=hoveredMarker?'pointer':'grab';return;
+    }
     const rect = canvas.getBoundingClientRect();
     markerPointer.set(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -424,6 +442,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
   };
 
   const onPointerDown = (event: PointerEvent) => {
+    if(input.current.herQuizOpen)return;
     if (input.current.navigation?.phase === 'BLACK_HOLE_ACTIVE' && !input.current.suspended) {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
       cameraRig.lastX = event.clientX;
@@ -582,6 +601,18 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
   canvas.addEventListener('lostpointercapture', onPointerCancel);
   canvas.addEventListener('pointerleave', onPointerLeave);
   canvas.addEventListener('wheel', onWheel, { passive: false });
+  const onHerKey = (event: KeyboardEvent) => {
+    if(input.current.herUniverse?.stage!=='ready'||input.current.herQuizOpen)return;
+    if(event.key==='ArrowLeft')cameraRig.targetAzimuth-=.12;
+    else if(event.key==='ArrowRight')cameraRig.targetAzimuth+=.12;
+    else if(event.key==='ArrowUp')cameraRig.targetPolar=clamp(cameraRig.targetPolar-.1,.8,2.2);
+    else if(event.key==='ArrowDown')cameraRig.targetPolar=clamp(cameraRig.targetPolar+.1,.8,2.2);
+    else if(event.key==='+'||event.key==='=')cameraRig.targetDistance=clamp(cameraRig.targetDistance-1,9.5,20);
+    else if(event.key==='-')cameraRig.targetDistance=clamp(cameraRig.targetDistance+1,9.5,20);
+    else return;
+    event.preventDefault();wake();
+  };
+  canvas.addEventListener('keydown',onHerKey);
 
   let width = 1, height = 1; let frame = 0; let last = 0; let elapsed = 0; let formation = 0; let didComplete = false; let disposed = false;
   let wake = () => {};
@@ -627,7 +658,95 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
   let lastBlackHoleProjection = -Infinity;
   let lastProjection = -Infinity;
   let suspensionStarted: number | null = null;
+  let herStage = '';
+  let herElapsed = 0;
+  let herDone = false;
+  let herColorKey = '';
+  const herFrom = new THREE.Vector3();
+  const herFromQ = new THREE.Quaternion();
+  const herLookQ = new THREE.Quaternion();
+  const herMatrix = new THREE.Matrix4();
+  const originalColors = data.colors.slice();
+  const sceneVisibility = new Map<THREE.Object3D, boolean>();
   const draw = (now: number) => {
+    if (disposed || document.hidden) return;
+    const her = input.current.herUniverse;
+    if (her) {
+      const reduced = input.current.reduced;
+      const delta = last ? Math.min(now-last,50) : 16; last = now;
+      if (!herStage) {
+        scene.children.forEach(child=>sceneVisibility.set(child,child.visible));
+        herFrom.copy(camera.position); herFromQ.copy(camera.quaternion);
+        activeTouchPointers.clear(); cameraRig.dragging=false;
+      }
+      if (herStage !== her.stage) { herStage=her.stage;herElapsed=0;herDone=false; }
+      herElapsed += delta;
+      const colorKey=her.colors.join(',');
+      if(herColorKey!==colorKey && her.colors.length) {
+        herColorKey=colorKey;
+        herCoupleMaterial.color.set(palette.find(color=>color.id===her.colors[her.colors.length-1])!.hex);
+        const colors=her.colors.map(id=>new THREE.Color(palette.find(color=>color.id===id)!.hex));
+        for(let i=0;i<count;i++) {
+          const color=colors[Math.floor(data.seeds[i]*colors.length)%colors.length].clone();
+          color.lerp(new THREE.Color('#ffffff'),Math.pow(data.seeds[i],5)*.42);
+          color.toArray(data.colors,i*3);
+        }
+        galaxyGeometry.attributes.aColor.needsUpdate=true;
+      }
+      scene.children.forEach(child=>{child.visible=false;});
+      material.uniforms.uMorph.value=1;material.uniforms.uReduced.value=Number(reduced);
+      material.uniforms.uTime.value=reduced?0:now/1000;
+      canvas.style.pointerEvents=her.stage==='ready'&&!input.current.herQuizOpen?'auto':'none';
+      if(her.stage==='travel') {
+        const p=Math.min(1,herElapsed/(reduced?3000:12500));
+        const retreat=THREE.MathUtils.smoothstep(p,0,.4);
+        points.visible=true;farStars.visible=!reduced;eyes.group.visible=p<.22;
+        eyes.form(1-THREE.MathUtils.smoothstep(p,0,.22),reduced);
+        material.uniforms.uOpacity.value=(1-THREE.MathUtils.smoothstep(p,.28,.52))*.85;
+        points.scale.setScalar(1-retreat*.82);
+        camera.position.copy(herFrom).lerp(new THREE.Vector3(0,8,38),retreat);
+        herMatrix.lookAt(camera.position,new THREE.Vector3(0,0,0),worldUp);herLookQ.setFromRotationMatrix(herMatrix);
+        camera.quaternion.copy(herFromQ).slerp(herLookQ,retreat);
+        const flight=THREE.MathUtils.smoothstep(p,.4,.8);
+        farStars.rotation.z=flight*.3;
+        farStars.scale.set(1,1,1+Math.sin(flight*Math.PI)*5);
+        farStars.position.z=-flight*85;
+        farStars.material.opacity=Math.sin(THREE.MathUtils.smoothstep(p,.32,1)*Math.PI)*.9;
+        if(p===1&&!herDone){herDone=true;input.current.onHerArrived?.();}
+      } else {
+        points.scale.setScalar(1);farStars.scale.setScalar(1);farStars.position.z=0;
+        updateCamera();
+        const birth=her.stage==='ready'?1:her.stage==='creating'?Math.min(1,herElapsed/(reduced?1200:6500)):0;
+        points.visible=birth>0;
+        galaxyGeometry.setDrawRange(0,Math.floor(count*birth));
+        material.uniforms.uOpacity.value=birth*.95;
+        canvas.dataset.herStarCount=String(Math.floor(count*birth));
+        if(birth===1&&her.stage==='creating'&&!herDone){herDone=true;input.current.onHerCreated?.();}
+        if(her.stage==='ready') {
+          herStar.visible=!input.current.herView||Boolean(input.current.herCompatibilityAvailable);herConstellation.visible=herStar.visible;
+          herStar.scale.setScalar(reduced?.7:.7+Math.sin(now*.0015)*.08);
+          projectedLetter.copy(herStar.position).project(camera);const rect=canvas.getBoundingClientRect();
+          const x=rect.left+(projectedLetter.x+1)*width/2,y=rect.top+(1-projectedLetter.y)*height/2;
+          input.current.onHerQuizProjection?.({x,y,visible:projectedLetter.z>-1&&projectedLetter.z<1&&x>90&&x<width-90&&y>100&&y<window.innerHeight*.58});
+          herCoupleStar.visible=!input.current.herView||Boolean(input.current.herCoupleAvailable);herCoupleStar.scale.setScalar(reduced ? .7 : .7+Math.sin(now*.0015+1)*.08);
+          projectedLetter.copy(herCoupleStar.position).project(camera);
+          const coupleX=rect.left+(projectedLetter.x+1)*width/2,coupleY=rect.top+(1-projectedLetter.y)*height/2;
+          input.current.onHerCoupleProjection?.({x:coupleX,y:coupleY,visible:projectedLetter.z>-1&&projectedLetter.z<1&&coupleX>90&&coupleX<width-90&&coupleY>100&&coupleY<window.innerHeight*.58});
+        }
+      }
+      canvas.dataset.herStage=her.stage;
+      canvas.dataset.herColors=JSON.stringify(her.colors);
+      publishPose();
+      renderer.render(scene,camera);
+      const settling=Math.abs(cameraRig.azimuth-cameraRig.targetAzimuth)>.0001||Math.abs(cameraRig.polar-cameraRig.targetPolar)>.0001||Math.abs(cameraRig.distance-cameraRig.targetDistance)>.0001;
+      if(!reduced||her.stage==='travel'||her.stage==='creating'||settling)frame=requestAnimationFrame(draw);
+      return;
+    }
+    if(herStage) {
+      sceneVisibility.forEach((visible,child)=>{child.visible=visible;});sceneVisibility.clear();
+      herStage='';herColorKey='';data.colors.set(originalColors);galaxyGeometry.attributes.aColor.needsUpdate=true;
+      galaxyGeometry.setDrawRange(0,count);points.scale.setScalar(1);farStars.scale.setScalar(1);farStars.position.z=0;farStars.material.opacity=.7;
+    }
     const navigation = input.current.navigation;
     const travelling = navigation?.phase === 'TRAVEL_TO_DESTINATION' || navigation?.phase === 'PORTAL_ENTRY' || navigation?.phase === 'BLACK_HOLE_ENTRY' || navigation?.phase === 'RETURN_TO_GALAXY';
     if (navigation && navigation.phase !== travelPhase) {
@@ -992,8 +1111,11 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
       canvas.removeEventListener('lostpointercapture', onPointerCancel);
       canvas.removeEventListener('pointerleave', onPointerLeave);
       canvas.removeEventListener('wheel', onWheel);
+      canvas.removeEventListener('keydown',onHerKey);
       eyes.dispose();
       shooting.dispose();
+      herStarMaterial.dispose();herConstellationGeometry.dispose();herConstellationMaterial.dispose();
+      herCoupleMaterial.dispose();
       portalGeometry.forEach((geometry) => geometry.dispose());
       portalMaterials.forEach((portalMaterial) => portalMaterial.dispose());
       blackHoleScene.dispose();
