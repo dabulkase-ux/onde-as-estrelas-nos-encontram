@@ -5,7 +5,7 @@ export type QuizDraft = { version: 1; introSeen: boolean; status: 'draft' | 'com
 export const limits = { question: 600, option: 240, storageCharacters: 1_000_000 };
 export const blankQuiz = (): QuizDraft => ({ version: 1, introSeen: false, status: 'draft', questions: [] });
 export function newQuestion(): Question {
-  return { id: crypto.randomUUID(), text: '', options: [1,2,3,4].map(weight => ({ id: crypto.randomUUID(), text: '', weight: weight as Weight })) as Question['options'] };
+  return { id: crypto.randomUUID(), text: '', options: [4,3,2,1].map(weight => ({ id: crypto.randomUUID(), text: '', weight: weight as Weight })) as Question['options'] };
 }
 export function validQuestion(question: Question): boolean {
   return Boolean(question.text.trim()) && question.text.length <= limits.question && question.options.length === 4 &&

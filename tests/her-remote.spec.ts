@@ -43,7 +43,6 @@ test('one-time draft reset clears arbitrary old data, starts at colors and prese
   await editor.getByRole('button',{name:'Nova pergunta',exact:true}).click();await editor.getByRole('textbox',{name:'Enunciado',exact:true}).fill(`Novo rascunho ${kind}`);
   for(let i=1;i<=4;i++)await editor.getByRole('textbox',{name:`Texto da alternativa ${i}`,exact:true}).fill(`Nova alternativa ${i}`);
   if(kind==='couple'){await editor.getByRole('checkbox',{name:'Alternativa 2 correta',exact:true}).check();await editor.getByRole('textbox',{name:'Comentário explicativo (opcional)',exact:true}).fill('Novo comentário legítimo');}
-  else await editor.getByRole('combobox',{name:'Peso da alternativa 4',exact:true}).selectOption('4');
   await editor.getByRole('button',{name:'Voltar ao meu universo',exact:true}).last().click();
  }
  const before=await page.evaluate(keys=>keys.map(key=>localStorage.getItem(key)),[herUniverseKey,herQuizKey,herCoupleKey]);
@@ -121,4 +120,31 @@ test('Eyes to Nexus, palette, galaxy, both quiz builders and publication without
   await modal.getByRole('button',{name:'Concluir quiz',exact:true}).click();await modal.getByRole('button',{name:'Voltar ao meu universo',exact:true}).last().click();
  }
  const panel=await publish(page);await expect(panel.getByText(/Universo publicado\./)).toBeVisible();expect(mock.universe?.document.couple.status).toBe('completed');expect(mock.universe?.document.compatibility.status).toBe('completed');
+});
+
+test('letters publish and reopen through the original envelope and reader without changing quizzes',async({page,browser})=>{
+ const mock=universeMock();await connect(page.context(),mock);await seed(page);await page.goto('/universo-dela');
+ await page.getByRole('button',{name:'Adicionar carta',exact:true}).click();const editor=page.getByRole('dialog',{name:'Editar cartinha',exact:true});
+ await editor.getByRole('textbox',{name:'Título da cartinha',exact:true}).fill('Uma carta publicada');await editor.getByRole('textbox',{name:'Mensagem da cartinha',exact:true}).fill('Mensagem livre.\nOutro parágrafo.');await editor.getByRole('button',{name:'Fechar carta',exact:true}).click();await expect(editor).toHaveCount(0);
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('meu-universo.her-letters.v1')!));await publish(page);expect(mock.universe?.document.letters).toEqual(saved);expect(mock.universe?.document.compatibility).toEqual(readyDocument().compatibility);
+ const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true});await connect(context,mock);const visitor=await context.newPage();await visitor.emulateMedia({reducedMotion:'reduce'});await visitor.goto('http://localhost:5175/universo-dela/visao');
+ await expect(visitor.locator('[data-letter-id]')).toHaveCount(1);const target=visitor.locator('[data-letter-id]').first();await target.focus();await visitor.keyboard.press('Enter');
+ const reader=visitor.getByRole('dialog',{name:'Uma carta publicada',exact:true});await expect(reader).toBeVisible();await expect(reader.locator('.letter-paper p')).toHaveText(['Mensagem livre.','Outro parágrafo.']);await reader.screenshot({path:'test-results/her-letter-published.png'});await reader.getByRole('button',{name:'Fechar carta',exact:true}).tap();await expect(reader).toHaveCount(0);await expect(target).toBeFocused();
+ await visitor.reload();await expect(visitor.locator('[data-letter-id]')).toHaveCount(1);expect((await (await mock.request({action:'public'})).json()).publication.letters).toEqual(saved);await context.close();
+});
+test('an older server cannot silently discard local letters during publication',async({page})=>{
+ const mock=universeMock();await connect(page.context(),mock);await seed(page);
+ await page.context().route('https://stage5.invalid/**',async route=>{if(route.request().method()==='POST'&&route.request().postDataJSON()?.action==='owner'){await route.fulfill({json:{universe:null},headers:{'Access-Control-Allow-Origin':'http://localhost:5175'}});}else await route.fallback();});
+ await page.addInitScript(()=>localStorage.setItem('meu-universo.her-letters.v1',JSON.stringify([{id:'her-letter-keep',title:'Minha carta',paragraphs:['Não descartar.'],position:[4.5,0,-1]}])));
+ await page.goto('/universo-dela');await page.getByRole('button',{name:'Salvar e publicar',exact:true}).click();await expect(page.getByRole('alert')).toContainText('nenhum dado remoto foi alterado');expect(mock.publications.size).toBe(0);expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('meu-universo.her-letters.v1')!)[0].paragraphs)).toEqual(['Não descartar.']);
+});
+
+test('multiple personalized holes publish and remain read-only for a visitor',async({page,browser})=>{
+ const mock=universeMock();await connect(page.context(),mock);await seed(page);await page.addInitScript(()=>localStorage.setItem('meu-universo.her-black-holes.v1',JSON.stringify([1,2].map(n=>({id:`her-hole-remote-${n}`,position:[n===1?5:-5,0,-2],crystals:['strength','mirror','silence','enough','arthur'].map((id,i)=>({id,title:`Segredo ${n}-${i+1}`,text:`Mensagem ${n}-${i+1}`})),starLetter:n===1?{title:'Minha estrela publicada',paragraphs:['Carta da estrela própria.']}:null})))));await page.goto('/universo-dela');await publish(page);const stored=mock.universe!.document.blackHoles!;expect(stored).toHaveLength(2);
+ const context=await browser.newContext({viewport:{width:320,height:844},hasTouch:true});await connect(context,mock);const visitor=await context.newPage();await visitor.emulateMedia({reducedMotion:'reduce'});await visitor.goto('http://localhost:5175/universo-dela/visao');await expect(visitor.getByRole('button',{name:'Adicionar elemento',exact:true})).toHaveCount(0);const target=visitor.locator('[data-hole-id="her-hole-remote-1"]');await target.focus();await visitor.keyboard.press('Enter');
+ for(let i=1;i<=5;i++){await visitor.getByRole('button',{name:`Descobrir fragmento: Segredo 1-${i}`,exact:true}).click();const dialog=visitor.getByRole('dialog');await expect(dialog).toContainText(`Mensagem 1-${i}`);await expect(dialog.getByRole('textbox')).toHaveCount(0);await dialog.getByRole('button',{name:'Voltar aos fragmentos',exact:true}).click();}
+ await visitor.getByRole('button',{name:'Ler carta da estrela',exact:true}).click();await expect(visitor.getByRole('dialog')).toContainText('Carta da estrela própria.');await expect(visitor.getByRole('button',{name:'Excluir carta da estrela',exact:true})).toHaveCount(0);await visitor.getByRole('button',{name:'Fechar carta',exact:true}).click();await visitor.getByRole('button',{name:'Voltar à galáxia',exact:true}).click();await visitor.reload();expect((await (await mock.request({action:'public'})).json()).publication.blackHoles).toEqual(stored);await context.close();
+});
+test('server without black-hole capability cannot discard local elements',async({page})=>{
+ const mock=universeMock();await connect(page.context(),mock);await seed(page);await page.context().route('https://stage5.invalid/**',async route=>{if(route.request().method()==='POST'&&route.request().postDataJSON()?.action==='owner')await route.fulfill({json:{universe:null,capabilities:{letters:true}},headers:{'Access-Control-Allow-Origin':'http://localhost:5175'}});else await route.fallback();});await page.addInitScript(()=>localStorage.setItem('meu-universo.her-black-holes.v1',JSON.stringify([{id:'her-hole-keep',position:[5,0,-2],crystals:['strength','mirror','silence','enough','arthur'].map(id=>({id,title:'',text:''})),starLetter:null}])));await page.goto('/universo-dela');await page.getByRole('button',{name:'Salvar e publicar',exact:true}).click();await expect(page.getByRole('alert')).toContainText('nenhum dado remoto foi alterado');expect(mock.publications.size).toBe(0);expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('meu-universo.her-black-holes.v1')!).length)).toBe(1);
 });

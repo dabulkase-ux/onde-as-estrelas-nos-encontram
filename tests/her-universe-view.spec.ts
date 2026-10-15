@@ -102,3 +102,12 @@ test('shared participant presentation respects motion and keyboard in preview an
   await expect(page.getByRole('dialog').locator('.quiz-card .quiz-visuals')).toBeVisible();
   await expect(page.getByRole('dialog').getByRole('progressbar')).toHaveAttribute('max','5');
 });
+
+for(const width of [320,390,430])test(`fallback keeps letters holes and both quizzes independently clickable at ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:width===320?568:844});await seed(page);
+ await page.addInitScript(()=>{localStorage.setItem('meu-universo.her-letters.v1',JSON.stringify([{id:'her-letter-controls',title:'Carta acessível',paragraphs:['Mensagem própria.'],position:[5,0,-2]}]));localStorage.setItem('meu-universo.her-black-holes.v1',JSON.stringify([{id:'her-hole-controls',position:[-5,0,-2],crystals:['strength','mirror','silence','enough','arthur'].map(id=>({id,title:'',text:''})),starLetter:null}]));const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(...args:Parameters<typeof original>){if(String(args[0]).includes('webgl'))return null;return original.apply(this,args);} as typeof original;});
+ await page.goto('/universo-dela/visao');await expect(page.locator('canvas[data-renderer=canvas2d]')).toBeVisible();
+ for(const name of ['Nossa Compatibilidade','Quanto Você Me Conhece?']){await page.getByRole('button',{name,exact:true}).tap();const dialog=page.getByRole('dialog',{name,exact:true});await expect(dialog).toBeVisible();await dialog.getByRole('button',{name:'Voltar à galáxia',exact:true}).tap();await expect(dialog).toHaveCount(0);}
+ await page.getByRole('button',{name:'Abrir carta: Carta acessível',exact:true}).tap();const letter=page.getByRole('dialog',{name:'Carta acessível',exact:true});await expect(letter).toBeVisible();await letter.getByRole('button',{name:'Fechar carta',exact:true}).tap();await expect(letter).toHaveCount(0);
+ await page.getByRole('button',{name:'Entrar no buraco negro 1',exact:true}).tap();await expect(page.getByRole('region',{name:'Buraco Negro dos Segredos',exact:true})).toBeVisible();await page.getByRole('button',{name:'Voltar à galáxia',exact:true}).tap();await expect(page.getByRole('region',{name:'Buraco Negro dos Segredos',exact:true})).toHaveCount(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

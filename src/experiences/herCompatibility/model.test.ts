@@ -4,11 +4,11 @@ import { herQuizKey, quizRepository } from './repository';
 function ready(index=0):Question { const question=newQuestion();question.text=`Pergunta ${index}`;question.options.forEach((option,index)=>{option.text=`Resposta ${index}`;});return question; }
 afterEach(()=>vi.unstubAllGlobals());
 describe('visitor compatibility quiz',()=>{
-  it('starts from zero and creates stable unique IDs with exactly four independently editable weights',()=>{
+  it('starts from zero and creates stable unique IDs with fixed descending weights for new questions',()=>{
     expect(blankQuiz().questions).toEqual([]);const question=newQuestion();expect(question.options).toHaveLength(4);
     expect(new Set([question.id,...question.options.map(option=>option.id)]).size).toBe(5);
     const id=question.options[0].id;question.options[0].text='Novo texto';question.options[0].weight=4;
-    expect(question.options[0].id).toBe(id);expect(question.options.map(option=>option.weight)).toEqual([4,2,3,4]);
+    expect(question.options[0].id).toBe(id);expect(question.options.map(option=>option.weight)).toEqual([4,3,2,1]);
   });
   it('requires five fully valid questions and permits more than twenty',()=>{
     const questions=Array.from({length:35},(_,index)=>ready(index));expect(canComplete(questions)).toBe(true);
@@ -25,8 +25,8 @@ describe('visitor compatibility quiz',()=>{
   it('calculates 25–100% using option weights, with consistent rounding and complete answers',()=>{
     const questions=Array.from({length:6},(_,index)=>ready(index));
     const answers=(choice:number)=>Object.fromEntries(questions.map(question=>[question.id,question.options[choice].id]));
-    expect(compatibilityScore(questions,answers(0))).toBe(25);expect(compatibilityScore(questions,answers(3))).toBe(100);
-    questions[0].options[0].weight=2;expect(compatibilityScore(questions,answers(0))).toBe(29);
+    expect(compatibilityScore(questions,answers(3))).toBe(25);expect(compatibilityScore(questions,answers(0))).toBe(100);
+    questions[0].options[3].weight=2;expect(compatibilityScore(questions,answers(3))).toBe(29);
     questions.forEach(question=>question.options.forEach(option=>{option.weight=3;}));expect(compatibilityScore(questions,answers(0))).toBe(75);
     expect(()=>compatibilityScore(questions,{})).toThrow();expect(()=>compatibilityScore([],{})).toThrow();
   });

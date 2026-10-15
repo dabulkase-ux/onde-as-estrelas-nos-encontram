@@ -1,3 +1,4 @@
+import {blankHole} from '../experiences/herUniverse/elements/repository';
 import {PGlite} from '@electric-sql/pglite';
 import dual from '../../supabase/migrations/20261014003040_dual_admin_access.sql?raw';
 import base from '../../supabase/migrations/20261013032801_her_universe_publication.sql?raw';
@@ -36,5 +37,33 @@ it('grades both published quizzes and delivers actual selected answers to her ad
 it('does not take over a legacy authorized creator universe',async()=>{
  await db.exec('begin');try{
   const owner=crypto.randomUUID();await db.query('insert into auth.users(id) values($1)',[owner]);await db.query('insert into her_universe_creators(user_id) values($1)',[owner]);await db.query('update her_universes set owner_id=$1',[owner]);await db.exec('set local role service_role');await expect(db.query('select public.her_publish_gift(2,$1)',[readyDocument()])).rejects.toThrow(/Legacy universe protected/);
+ }finally{await db.exec('rollback');}
+});
+
+it('stores letters in the published JSON document with positions unchanged in isolated PostgreSQL',async()=>{
+ await db.exec('begin');try{
+  await db.exec('set local role service_role');
+  const doc={...readyDocument(),letters:[{id:'her-letter-sql',title:'Uma cartinha',paragraphs:['Mensagem preservada.'],position:[4.5,0,-1]}],blackHoles:[blankHole([6,0,-2]),blankHole([-6,0,-2])]};
+  await db.query('select public.her_publish_gift(2,$1)',[doc]);
+  const stored=(await db.query<{p:{document:typeof doc}}>('select public.her_read_publication() as p')).rows[0].p.document;
+  expect(stored.letters).toEqual(doc.letters);expect(stored.blackHoles).toEqual(doc.blackHoles);expect(stored.compatibility).toEqual(doc.compatibility);expect(stored.couple).toEqual(doc.couple);
+ }finally{await db.exec('rollback');}
+});
+
+
+it('edits and deletes only selected elements while preserving quizzes and published history in isolated PostgreSQL',async()=>{
+ await db.exec('begin');try{
+  await db.exec('set local role service_role');
+  const doc={...readyDocument(),letters:[1,2].map(i=>({id:`her-letter-lifecycle-${i}`,title:`Carta ${i}`,paragraphs:[`Mensagem ${i}`],position:[i*5,0,-1]})),blackHoles:[blankHole([7,0,-2]),blankHole([-7,0,-2])]};
+  for(const [index,hole] of doc.blackHoles.entries()){hole.crystals.forEach((c,i)=>{c.title=`Nota ${index}-${i}`;c.text=`Mensagem ${index}-${i}`;});hole.starLetter={title:`Estrela ${index}`,paragraphs:[`Carta ${index}`]};}
+  const initial=structuredClone(doc);
+  const first=(await db.query<{p:{id:string;revision:number}}>('select public.her_publish_gift(2,$1) as p',[doc])).rows[0].p;
+  doc.letters[0].title='Carta revisada';doc.blackHoles[0].crystals[0].text='Nota revisada';doc.blackHoles[0].starLetter=null;
+  const edited=(await db.query<{p:{revision:number}}>('select public.her_publish_gift($1,$2) as p',[first.revision,doc])).rows[0].p;
+  doc.letters.splice(0,1);doc.blackHoles.splice(0,1);
+  await db.query('select public.her_publish_gift($1,$2)',[edited.revision,doc]);
+  const visible=(await db.query<{p:{document:typeof doc}}>('select public.her_read_publication() as p')).rows[0].p.document;
+  expect(visible.letters).toEqual([initial.letters[1]]);expect(visible.blackHoles).toEqual([initial.blackHoles[1]]);expect(visible.compatibility).toEqual(initial.compatibility);expect(visible.couple).toEqual(initial.couple);
+  const archived=(await db.query<{document:typeof doc}>('select document from public.her_universe_publications where id=$1',[first.id])).rows[0].document;expect(archived).toEqual(initial);
  }finally{await db.exec('rollback');}
 });

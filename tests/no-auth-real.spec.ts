@@ -18,8 +18,7 @@ test('real Supabase: creation without Auth, both quizzes, publication, visitor a
   for(let index=1;index<=5;index++){
    await editor.getByRole('button',{name:'Nova pergunta',exact:true}).click();await editor.getByRole('textbox',{name:'Enunciado',exact:true}).fill(`Validação técnica — ${kind} — pergunta ${index}`);
    for(let option=1;option<=4;option++)await editor.getByRole('textbox',{name:`Texto da alternativa ${option}`,exact:true}).fill(`Alternativa de teste ${option}`);
-   if(kind==='compatibility')await editor.getByRole('combobox',{name:'Peso da alternativa 4',exact:true}).selectOption('4');
-   else{await editor.getByRole('checkbox',{name:'Alternativa 2 correta',exact:true}).check();await editor.getByRole('checkbox',{name:'Alternativa 4 correta',exact:true}).check();await editor.getByRole('textbox',{name:'Comentário explicativo (opcional)',exact:true}).fill('Comentário de validação técnica.');}
+   if(kind==='couple'){await editor.getByRole('checkbox',{name:'Alternativa 2 correta',exact:true}).check();await editor.getByRole('checkbox',{name:'Alternativa 4 correta',exact:true}).check();await editor.getByRole('textbox',{name:'Comentário explicativo (opcional)',exact:true}).fill('Comentário de validação técnica.');}
   }
   await editor.getByRole('button',{name:'Concluir quiz',exact:true}).click();await editor.getByRole('button',{name:'Voltar ao meu universo',exact:true}).last().click();
  }
@@ -29,7 +28,7 @@ test('real Supabase: creation without Auth, both quizzes, publication, visitor a
  const other=await browser.newContext();const visitor=await other.newPage();await visitor.emulateMedia({reducedMotion:'reduce'});await visitor.goto(link);await expect(visitor.getByRole('region',{name:'Explorar o universo dela'})).toBeVisible();
  for(const kind of ['compatibility','couple']){
   const name=kind==='couple'?'Quanto Você Me Conhece?':'Nossa Compatibilidade';await visitor.getByRole('button',{name,exact:true}).click();const quiz=visitor.getByRole('dialog',{name,exact:true});
-  for(let index=1;index<=5;index++){await quiz.getByRole('radio',{name:'Alternativa de teste 4',exact:true}).check();if(kind==='couple')await expect(quiz.getByText('Comentário de validação técnica.',{exact:true})).toHaveCount(0);await quiz.getByRole('button',{name:'Confirmar resposta',exact:true}).click();if(kind==='couple')await expect(quiz.getByText('Comentário de validação técnica.',{exact:true})).toBeVisible();await quiz.getByRole('button',{name:index===5?'Ver resultado':'Próxima pergunta',exact:true}).click();}
+  for(let index=1;index<=5;index++){await quiz.getByRole('radio',{name:kind==='compatibility'?'Alternativa de teste 1':'Alternativa de teste 4',exact:true}).check();if(kind==='couple')await expect(quiz.getByText('Comentário de validação técnica.',{exact:true})).toHaveCount(0);await quiz.getByRole('button',{name:'Confirmar resposta',exact:true}).click();if(kind==='couple')await expect(quiz.getByText('Comentário de validação técnica.',{exact:true})).toBeVisible();await quiz.getByRole('button',{name:index===5?'Ver resultado':'Próxima pergunta',exact:true}).click();}
   await expect(quiz.getByRole('heading',{name:kind==='couple'?'Você me conhece: 100%':'Compatibilidade: 100%',exact:true})).toBeVisible();await quiz.getByRole('button',{name:'Voltar à galáxia',exact:true}).click();
  }
  await visitor.reload();await expect(visitor.locator('canvas')).toHaveAttribute('data-her-colors','["rosa","turquesa"]');

@@ -39,7 +39,7 @@ describe('universe server boundary and local migration',()=>{
   });
   it('backs up local drafts before remote recovery and keeps correct flags/order',()=>{
     const data=new Map<string,string>([[herUniverseKey,'previous galaxy'],[herQuizKey,'previous quiz'],[herCoupleKey,'previous couple']]);vi.stubGlobal('localStorage',{getItem:(key:string)=>data.get(key)??null,setItem:(key:string,value:string)=>data.set(key,value),removeItem:(key:string)=>data.delete(key)});
-    const doc=readyDocument();restoreLocalDocument(doc);expect(JSON.parse(data.get('meu-universo.before-remote-import.v1')!).previous).toEqual(['previous galaxy','previous quiz','previous couple']);expect(localDocument()).toEqual(doc);
+    const doc=readyDocument();restoreLocalDocument(doc);expect(JSON.parse(data.get('meu-universo.before-remote-import.v1')!).previous).toEqual(['previous galaxy','previous quiz','previous couple',null,null]);expect(localDocument()).toEqual({...doc,letters:[]});
   });
   it('preserves all local data when backup storage fails',()=>{
     const data=new Map<string,string>([[herUniverseKey,'keep']]);vi.stubGlobal('localStorage',{getItem:(key:string)=>data.get(key)??null,setItem:()=>{throw new Error('Quota');}});expect(()=>restoreLocalDocument(readyDocument())).toThrow();expect(data.get(herUniverseKey)).toBe('keep');

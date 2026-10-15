@@ -41,7 +41,7 @@ export function makeUniverseHandler(settings:UniverseSettings){
       }
       if(action==='owner'){
         const rows=await settings.db('GET','her_universes?owner_id=is.null&slug=eq.universo-dela&select=id,revision,active_publication') as unknown[];
-        return respond({universe:rows[0]??null});
+        return respond({universe:rows[0]??null,capabilities:{letters:true,blackHoles:true}});
       }
       if(!Number.isSafeInteger(body.revision)||Number(body.revision)<0)throw new HttpError(400,'Versão inválida.');
       let doc;try{doc=validateDocument(body.document);}catch(error){throw new HttpError(400,error instanceof Error?error.message:'Dados inválidos.');}

@@ -3,7 +3,7 @@ import { palette, toggleColor, type HerProgress } from './progress';
 import './herUniverse.css';
 import { HerStars } from './HerStars';
 import { NexusSpeech, nexusLines } from './NexusSpeech';
-export function HerUniverse({ progress, onChange, reduced, storageFailed, travelReady, creationReady, quizOpen, onOpenQuiz, quizAccess, coupleOpen, onOpenCouple, coupleAccess, onView }: { progress: HerProgress; onChange: (next: HerProgress) => void; reduced: boolean; storageFailed: boolean; travelReady: boolean; creationReady: boolean; quizOpen: boolean; onOpenQuiz: () => void; quizAccess: RefObject<HTMLButtonElement|null>; coupleOpen: boolean; onOpenCouple: () => void; coupleAccess: RefObject<HTMLButtonElement|null>; onView:()=>void }) {
+export function HerUniverse({ progress, onChange, reduced, storageFailed, travelReady, creationReady, quizOpen, onOpenQuiz, quizAccess, coupleOpen, onOpenCouple, coupleAccess, onView, onOpenLetters }: { progress: HerProgress; onChange: (next: HerProgress) => void; reduced: boolean; storageFailed: boolean; travelReady: boolean; creationReady: boolean; quizOpen: boolean; onOpenQuiz: () => void; quizAccess: RefObject<HTMLButtonElement|null>; coupleOpen: boolean; onOpenCouple: () => void; coupleAccess: RefObject<HTMLButtonElement|null>; onView:()=>void; onOpenLetters?:()=>void }) {
   const line = progress.dialogue ?? 0;
   const [acknowledged, setAcknowledged] = useState<string | null>(null);
   const [readyLine, setReadyLine] = useState(()=>progress.created?2:0);
@@ -46,6 +46,7 @@ export function HerUniverse({ progress, onChange, reduced, storageFailed, travel
       </>}
       {progress.stage === 'ready' && readyLine === 2 && <p className="universe-afterword">É só o começo. Ainda temos muita coisa para descobrir por aqui.<br/><small>Arraste para explorar. Use dois dedos ou a roda do mouse para se aproximar.</small></p>}
       {progress.stage==='ready' && <a className="view-universe-link" href="/universo-dela/visao" onClick={event=>{if(!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey){event.preventDefault();onView();}}}>Visualizar meu universo</a>}
+      {progress.stage==='ready'&&onOpenLetters&&<button className="view-universe-link" onClick={onOpenLetters}>Minhas cartinhas</button>}
       {storageFailed && <p role="status">Seu navegador não permitiu salvar esta visita. Mantenha esta página aberta para continuar.</p>}
     </div>
   </section>;

@@ -1,10 +1,11 @@
+import { shuffleQuestions } from '../../herCompatibility/optionOrder';
 import { useEffect, useRef, useState } from 'react';
 import { ParticipantVisuals } from '../../sharedQuiz/ParticipantVisuals';
 import { remoteRepository, type Correction, type Kind, type Publication } from './repository';
 import '../../herCompatibility/builder.css';
 import '../../herCouple/coupleBuilder.css';
 export default function PublishedQuiz({publication,kind,onExit}:{publication:Publication;kind:Kind;onExit:()=>void}){
-  const questions=publication[kind]!,[index,setIndex]=useState(0),[selected,setSelected]=useState<Record<number,string>>({}),[confirmed,setConfirmed]=useState<Record<number,Correction>>({}),[result,setResult]=useState<number|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const [questions,setQuestions]=useState(()=>kind==='compatibility'?shuffleQuestions(publication[kind]!):publication[kind]!),[index,setIndex]=useState(0),[selected,setSelected]=useState<Record<number,string>>({}),[confirmed,setConfirmed]=useState<Record<number,Correction>>({}),[result,setResult]=useState<number|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const modal=useRef<HTMLDialogElement>(null),heading=useRef<HTMLHeadingElement>(null),feedback=useRef<HTMLDivElement>(null),attempt=useRef(''),lock=useRef(false),alive=useRef(true);
   useEffect(()=>{alive.current=true;const node=modal.current!;node.showModal();return()=>{alive.current=false;node.close();};},[]);
   useEffect(()=>{heading.current?.focus({preventScroll:true});},[index,result]);
@@ -20,7 +21,7 @@ export default function PublishedQuiz({publication,kind,onExit}:{publication:Pub
     }catch(error){if(alive.current)setError(error instanceof Error?error.message:'Não foi possível confirmar. Tente novamente.');}
     finally{lock.current=false;if(alive.current)setBusy(false);}
   };
-  const restart=()=>{attempt.current='';setIndex(0);setSelected({});setConfirmed({});setResult(null);setError('');};
+  const restart=()=>{if(kind==='compatibility')setQuestions(shuffleQuestions(publication[kind]!));attempt.current='';setIndex(0);setSelected({});setConfirmed({});setResult(null);setError('');};
   return <dialog ref={modal} className={`compatibility-builder participant-experience participant-${kind}`} aria-label={title} onCancel={event=>{event.preventDefault();onExit();}}>
     <header className="builder-header"><div><p className="builder-kicker">UNIVERSO PUBLICADO · PARTICIPANTE</p><h1>{title}</h1></div><button onClick={onExit}>Voltar à galáxia</button></header>
     <div className="builder-content"><section className={`her-quiz-preview quiz-card ${kind==='couple'?'couple-card her-participant-couple':'her-participant-compatibility'}`} aria-label={`Quiz ${title}`}>

@@ -18,9 +18,6 @@ const builder=(page:Page)=>page.getByRole('dialog',{name:'Nossa Compatibilidade'
 async function fillQuestion(page:Page,index:number) {
   const modal=builder(page);await modal.getByRole('textbox',{name:'Enunciado',exact:true}).fill(`Pergunta ${index}`);
   for(let option=1;option<=4;option++)await modal.getByLabel(`Texto da alternativa ${option}`,{exact:true}).fill(`Resposta ${option} da pergunta ${index}`);
-  await modal.getByRole('combobox',{name:'Peso da alternativa 1',exact:true}).selectOption('4');
-  await modal.getByRole('combobox',{name:'Peso da alternativa 2',exact:true}).selectOption('1');
-  await modal.getByRole('combobox',{name:'Peso da alternativa 3',exact:true}).selectOption('2');
 }
 for(const width of [320,390,430])test(`create, preview, complete and restore locally at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:844});await enter(page);
@@ -30,17 +27,19 @@ for(const width of [320,390,430])test(`create, preview, complete and restore loc
     await expect(modal.getByLabel(/Texto da alternativa/)).toHaveCount(4);
     if(question<5)await expect(modal.getByRole('button',{name:'Concluir quiz',exact:true})).toBeDisabled();
   }
+  await expect(modal.getByRole('combobox')).toHaveCount(0);
   await modal.getByRole('button',{name:'Salvar rascunho',exact:true}).tap();
   const saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),herQuizKey);
-  expect(saved.questions[0].options.map((option:{weight:number})=>option.weight)).toEqual([4,1,2,4]);
+  expect(saved.questions[0].options.map((option:{weight:number})=>option.weight)).toEqual([4,3,2,1]);
   await modal.getByRole('button',{name:'Prévia como participante',exact:true}).tap();
+  const firstOrder=await modal.getByRole('radio').evaluateAll(nodes=>nodes.map(node=>node.parentElement?.textContent));
   for(let question=1;question<=5;question++) {
     const choice=modal.getByRole('radio',{name:`Resposta 2 da pergunta ${question}`,exact:true});
     await choice.focus();await page.keyboard.press('Space');
-    if(question===2){await modal.getByRole('button',{name:'Pergunta anterior',exact:true}).tap();await expect(modal.getByRole('radio',{name:'Resposta 2 da pergunta 1',exact:true})).toBeChecked();await modal.getByRole('button',{name:'Próxima pergunta',exact:true}).tap();}
+    if(question===2){await modal.getByRole('button',{name:'Pergunta anterior',exact:true}).tap();await expect(modal.getByRole('radio',{name:'Resposta 2 da pergunta 1',exact:true})).toBeChecked();expect(await modal.getByRole('radio').evaluateAll(nodes=>nodes.map(node=>node.parentElement?.textContent))).toEqual(firstOrder);await modal.getByRole('button',{name:'Próxima pergunta',exact:true}).tap();}
     await modal.getByRole('button',{name:question===5?'Ver resultado':'Próxima pergunta',exact:true}).tap();
   }
-  await expect(modal.getByRole('heading',{name:'Compatibilidade: 25%',exact:true})).toBeVisible();
+  await expect(modal.getByRole('heading',{name:'Compatibilidade: 75%',exact:true})).toBeVisible();
   await modal.getByRole('button',{name:'Voltar ao editor',exact:true}).tap();
   await modal.getByRole('button',{name:'Concluir quiz',exact:true}).tap();await expect(modal.getByText('Seu quiz está pronto.',{exact:true})).toBeVisible();
   await expect(modal.getByText(/somente neste navegador/)).toBeVisible();
@@ -48,7 +47,6 @@ for(const width of [320,390,430])test(`create, preview, complete and restore loc
   await page.reload();await page.getByRole('button',{name:'Nossa Compatibilidade',exact:true}).tap();
   await expect(builder(page).getByText('Seu quiz está pronto.',{exact:true})).toBeVisible();
   await builder(page).getByRole('button',{name:'Editar meu quiz',exact:true}).tap();
-  await expect(builder(page).getByRole('combobox',{name:'Peso da alternativa 1',exact:true})).toHaveValue('4');
   await page.screenshot({path:`test-results/her-compatibility-${width}.png`});
 });
 test('edit, reorder, cancel and confirm deletion; autosave preserves stable IDs',async({page})=>{

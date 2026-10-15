@@ -1,3 +1,7 @@
+import {sampleBlackHolePassage} from './blackHoleTravel';
+import {createHerBlackHoles,type HerElementsInput} from './herBlackHoles';
+import { createUniverseMarker, animateUniverseMarker, type LetterJourney } from './letterMarkers';
+import type { HerLetter } from '../../supabase/functions/_shared/herUniverseDomain';
 import { EyesConstellation } from './eyesConstellation';
 import { palette, type HerProgress } from '../experiences/herUniverse/progress';
 import { ShootingStar, type ShootingState } from './shootingStar';
@@ -16,7 +20,7 @@ import { fragmentShader, vertexShader } from './shaders';
 import { universeObjects } from './universeObjects';
 
 export interface GardenProjection { x: number; y: number; visible: boolean; }
-export interface SceneInput { herView?: boolean; herCompatibilityAvailable?: boolean; herCoupleAvailable?: boolean; onHerCouple?: () => void; onHerCoupleProjection?: (point: GardenProjection) => void; herQuizOpen?: boolean; onHerQuiz?: () => void; onHerQuizProjection?: (point: GardenProjection) => void; herUniverse?: HerProgress; onHerArrived?: () => void; onHerCreated?: () => void; eyesWatched?: boolean; eyesHint?: boolean; onEyesReady?: () => void; onEyesProjection?: (point: GardenProjection) => void; shootingState?: ShootingState; onWish?: () => void; mode: 'hidden' | 'fingerprint' | 'galaxy'; scan: number; reduced: boolean; suspended?: boolean; navigation?: Navigation; onTravelComplete?: () => void; compatibilityCompleted?: boolean; lettersRead?: readonly LetterId[]; onLetter?: (id: LetterId) => void; onLetterProjection?: (points: readonly LetterProjection[]) => void; onGarden?: () => void; onGardenProjection?: (projection: GardenProjection) => void; onBlackHole?: () => void; onBlackHoleFragment?: (id: BlackHoleFragmentId) => void; onBlackHoleAccessProjection?: (projection: GardenProjection) => void; onBlackHoleProjection?: (points: readonly BlackHoleProjection[]) => void; blackHoleDiscovered?: readonly BlackHoleFragmentId[]; blackHoleStarFormed?: boolean; onBlackHoleStarFormed?: () => void; onCompatibility?: () => void; onCouple?: () => void; }
+export interface SceneInput { herElements?:HerElementsInput; herLetters?:readonly HerLetter[];herLettersRead?:readonly string[]; herLetterJourney?:LetterJourney|null; onHerLetter?:(id:string)=>void; onHerLettersProjection?:(points:readonly LetterProjection<string>[])=>void; onHerLetterTravelComplete?:()=>void; herView?: boolean; herCompatibilityAvailable?: boolean; herCoupleAvailable?: boolean; onHerCouple?: () => void; onHerCoupleProjection?: (point: GardenProjection) => void; herQuizOpen?: boolean; onHerQuiz?: () => void; onHerQuizProjection?: (point: GardenProjection) => void; herUniverse?: HerProgress; onHerArrived?: () => void; onHerCreated?: () => void; eyesWatched?: boolean; eyesHint?: boolean; onEyesReady?: () => void; onEyesProjection?: (point: GardenProjection) => void; shootingState?: ShootingState; onWish?: () => void; mode: 'hidden' | 'fingerprint' | 'galaxy'; scan: number; reduced: boolean; suspended?: boolean; navigation?: Navigation; onTravelComplete?: () => void; compatibilityCompleted?: boolean; lettersRead?: readonly LetterId[]; onLetter?: (id: LetterId) => void; onLetterProjection?: (points: readonly LetterProjection[]) => void; onGarden?: () => void; onGardenProjection?: (projection: GardenProjection) => void; onBlackHole?: () => void; onBlackHoleFragment?: (id: BlackHoleFragmentId) => void; onBlackHoleAccessProjection?: (projection: GardenProjection) => void; onBlackHoleProjection?: (points: readonly BlackHoleProjection[]) => void; blackHoleDiscovered?: readonly BlackHoleFragmentId[]; blackHoleStarFormed?: boolean; onBlackHoleStarFormed?: () => void; onCompatibility?: () => void; onCouple?: () => void; }
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -142,15 +146,12 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
   let pressedMarker: THREE.Sprite | null = null;
   let pressedBlackHole = false;
   let hasExplored = false;
-  const markerSpriteData = universeObjects.map((entry) => {
-    const spriteMaterial = new THREE.SpriteMaterial({ color: entry.id === 'compatibility' ? '#89caff' : entry.id === 'couple' ? '#ffe0a2' : entry.id === 'black-hole' ? '#9294ff' : '#ffffff', map: entry.type === 'letter' ? envelopeTexture : texture, transparent: true, opacity: entry.id === 'black-hole' ? 0 : entry.type === 'letter' ? .78 : .42, depthWrite: false, blending: entry.type === 'letter' ? THREE.NormalBlending : THREE.AdditiveBlending });
-    const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.position.set(...entry.position);
-    sprite.scale.setScalar((entry.scale ?? 1) * 0.12);
-    sprite.userData = { id: entry.id, object: entry };
-    markerGroup.add(sprite);
-    return { sprite, object: entry, baseScale: entry.scale ?? 1, baseY: sprite.position.y };
-  });
+  const markerSpriteData = universeObjects.map(entry=>{const marker=createUniverseMarker(entry,texture,envelopeTexture);markerGroup.add(marker.sprite);return marker;});
+  const herLetterGroup=new THREE.Group();scene.add(herLetterGroup);
+  let herLetterMarkers:ReturnType<typeof createUniverseMarker>[]=[];
+  let herLetterSource:SceneInput['herLetters'];
+  const herElements=createHerBlackHoles(scene,canvas,camera,()=>input.current.herElements);
+  const herLetterTravel=new CameraTravel();let herLetterPhase='',herLetterElapsed=0,herLetterFinished=false;
   const blackHoleObject = universeObjects.find(entry => entry.id === 'black-hole')!;
   const blackHoleScene = createBlackHoleScene(scene, new THREE.Vector3(...blackHoleObject.position));
   blackHoleScene.interior.visible = false;
@@ -413,8 +414,8 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
     if (input.current.herUniverse) {
       const rect=canvas.getBoundingClientRect();markerPointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);
       markerRaycaster.setFromCamera(markerPointer,camera);
-      const hit=input.current.herUniverse.stage==='ready'&&!input.current.herQuizOpen?markerRaycaster.intersectObjects([herStar,herCoupleStar].filter(star=>star.visible))[0]?.object:null;
-      hoveredMarker=hit instanceof THREE.Sprite?hit:null;
+      const hit=input.current.herUniverse.stage==='ready'&&!input.current.herQuizOpen?markerRaycaster.intersectObjects([herStar,herCoupleStar,...herLetterMarkers.map(m=>m.sprite),...herElements.hitAreas].filter(star=>star.visible))[0]?.object:null;
+      hoveredMarker=hit instanceof THREE.Sprite?hit:hit?.userData.herProxy??null;
       canvas.style.cursor=hoveredMarker?'pointer':'grab';return;
     }
     const rect = canvas.getBoundingClientRect();
@@ -442,6 +443,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
   };
 
   const onPointerDown = (event: PointerEvent) => {
+    if(input.current.herElements?.journey?.phase==='active'&&!input.current.herElements.selected){pressedBlackHole=true;cameraRig.lastX=event.clientX;cameraRig.lastY=event.clientY;cameraRig.pointerTravel=0;return;}
     if(input.current.herQuizOpen)return;
     if (input.current.navigation?.phase === 'BLACK_HOLE_ACTIVE' && !input.current.suspended) {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -479,6 +481,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
   };
 
   const onPointerMove = (event: PointerEvent) => {
+    if(input.current.herElements?.journey?.phase==='active'){if(pressedBlackHole)cameraRig.pointerTravel+=Math.abs(event.clientX-cameraRig.lastX)+Math.abs(event.clientY-cameraRig.lastY);return;}
     if (input.current.navigation?.phase === 'BLACK_HOLE_ACTIVE') {
       if (pressedBlackHole) cameraRig.pointerTravel += Math.abs(event.clientX - cameraRig.lastX) + Math.abs(event.clientY - cameraRig.lastY);
       return;
@@ -521,6 +524,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
   };
 
   const onPointerUp = (event: PointerEvent) => {
+    if(input.current.herElements?.journey?.phase==='active'){if(pressedBlackHole&&cameraRig.pointerTravel<8)herElements.select(event);pressedBlackHole=false;return;}
     if (input.current.navigation?.phase === 'BLACK_HOLE_ACTIVE') {
       if (pressedBlackHole && cameraRig.pointerTravel < 8) {
         blackHoleScene.select(event, canvas, camera, id => input.current.onBlackHoleFragment?.(id));
@@ -673,7 +677,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
     const her = input.current.herUniverse;
     if (her) {
       const reduced = input.current.reduced;
-      const delta = last ? Math.min(now-last,50) : 16; last = now;
+      const herRawDelta=last?now-last:16;const delta=Math.min(herRawDelta,50); last=now;
       if (!herStage) {
         scene.children.forEach(child=>sceneVisibility.set(child,child.visible));
         herFrom.copy(camera.position); herFromQ.copy(camera.quaternion);
@@ -715,7 +719,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
         if(p===1&&!herDone){herDone=true;input.current.onHerArrived?.();}
       } else {
         points.scale.setScalar(1);farStars.scale.setScalar(1);farStars.position.z=0;
-        updateCamera();
+        if(!input.current.herLetterJourney&&!input.current.herElements?.journey)updateCamera();
         const birth=her.stage==='ready'?1:her.stage==='creating'?Math.min(1,herElapsed/(reduced?1200:6500)):0;
         points.visible=birth>0;
         galaxyGeometry.setDrawRange(0,Math.floor(count*birth));
@@ -723,6 +727,39 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
         canvas.dataset.herStarCount=String(Math.floor(count*birth));
         if(birth===1&&her.stage==='creating'&&!herDone){herDone=true;input.current.onHerCreated?.();}
         if(her.stage==='ready') {
+          if(herLetterSource!==input.current.herLetters){
+            herLetterMarkers.forEach(m=>{herLetterGroup.remove(m.sprite);m.sprite.material.dispose();});
+            herLetterSource=input.current.herLetters;
+            herLetterMarkers=(herLetterSource??[]).map(letter=>{const marker=createUniverseMarker({id:letter.id,type:'letter',position:[...letter.position],scale:4,label:letter.title,interactive:true,onSelect:()=>input.current.onHerLetter?.(letter.id)},texture,envelopeTexture);herLetterGroup.add(marker.sprite);return marker;});
+          }
+          herLetterGroup.visible=true;
+          const journey=input.current.herLetterJourney;
+          if(journey){
+            if(herLetterPhase!==journey.phase){
+              herLetterPhase=journey.phase;herLetterElapsed=0;herLetterFinished=false;
+              if(journey.phase==='outward'){
+                const rect=canvas.getBoundingClientRect(),centerY=1-2*(window.innerHeight/2-rect.top)/rect.height;
+                const tilt=-Math.atan(centerY*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)));
+                const marker=herLetterMarkers.find(m=>m.object.id===journey.id);
+                herLetterTravel.prepare(camera,marker?.sprite.position??new THREE.Vector3(...journey.position),1,tilt);
+                activeTouchPointers.clear();cameraRig.dragging=false;cameraRig.pinchTouching=false;
+              }
+            }
+            herLetterElapsed+=herRawDelta;
+            if(journey.phase!=='reading'){
+              const progress=reduced||journey.skip?1:Math.min(1,herLetterElapsed/3600);
+              herLetterTravel.sample(camera,journey.phase==='returning'?1-progress:progress);
+              if(progress===1&&!herLetterFinished){herLetterFinished=true;input.current.onHerLetterTravelComplete?.();}
+            }else herLetterTravel.sample(camera,1);
+          }else herLetterPhase='';
+          herLetterMarkers.forEach(marker=>animateUniverseMarker(marker,camera,hoveredMarker,reduced,now/1000,Boolean(input.current.herLettersRead?.includes(marker.object.id)),envelopeTexture,readEnvelopeTexture,journey?.id===marker.object.id,herLetterTravel.destination));
+          const letterRect=canvas.getBoundingClientRect();
+          input.current.onHerLettersProjection?.(herLetterMarkers.map(marker=>{
+            projectedLetter.copy(marker.sprite.position).project(camera);
+            const x=letterRect.left+(projectedLetter.x+1)*width/2,y=letterRect.top+(1-projectedLetter.y)*height/2;
+            return {id:marker.object.id,x,y,visible:!journey&&projectedLetter.z>-1&&projectedLetter.z<1&&x>22&&x<width-22&&y>80&&y<window.innerHeight-100};
+          }));
+
           herStar.visible=!input.current.herView||Boolean(input.current.herCompatibilityAvailable);herConstellation.visible=herStar.visible;
           herStar.scale.setScalar(reduced?.7:.7+Math.sin(now*.0015)*.08);
           projectedLetter.copy(herStar.position).project(camera);const rect=canvas.getBoundingClientRect();
@@ -734,15 +771,23 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
           input.current.onHerCoupleProjection?.({x:coupleX,y:coupleY,visible:projectedLetter.z>-1&&projectedLetter.z<1&&coupleX>90&&coupleX<width-90&&coupleY>100&&coupleY<window.innerHeight*.58});
         }
       }
+      if(her.stage==='ready'){
+        const state=herElements.update(now,herRawDelta,reduced);
+        material.uniforms.uOpacity.value*=state.opacity;
+        if(input.current.herElements?.journey){herLetterGroup.visible=false;herStar.visible=false;herCoupleStar.visible=false;herConstellation.visible=false;canvas.style.pointerEvents=input.current.herElements.journey.phase==='active'&&!input.current.herElements.selected?'auto':'none';}
+        if(state.hideGalaxy)points.visible=false;
+      }
       canvas.dataset.herStage=her.stage;
       canvas.dataset.herColors=JSON.stringify(her.colors);
       publishPose();
       renderer.render(scene,camera);
       const settling=Math.abs(cameraRig.azimuth-cameraRig.targetAzimuth)>.0001||Math.abs(cameraRig.polar-cameraRig.targetPolar)>.0001||Math.abs(cameraRig.distance-cameraRig.targetDistance)>.0001;
-      if(!reduced||her.stage==='travel'||her.stage==='creating'||settling)frame=requestAnimationFrame(draw);
+      if(!reduced||her.stage==='travel'||her.stage==='creating'||input.current.herLetterJourney&&input.current.herLetterJourney.phase!=='reading'||input.current.herElements?.journey||settling)frame=requestAnimationFrame(draw);
       return;
     }
     if(herStage) {
+      herElements.dispose();
+      if(camera.far!==120){camera.far=120;camera.updateProjectionMatrix();}
       sceneVisibility.forEach((visible,child)=>{child.visible=visible;});sceneVisibility.clear();
       herStage='';herColorKey='';data.colors.set(originalColors);galaxyGeometry.attributes.aColor.needsUpdate=true;
       galaxyGeometry.setDrawRange(0,count);points.scale.setScalar(1);farStars.scale.setScalar(1);farStars.position.z=0;farStars.material.opacity=.7;
@@ -832,18 +877,14 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
           }
         } else if (navigation.phase === 'BLACK_HOLE_ENTRY') {
           const entryProgress = reduced || navigation.skip ? 1 : Math.min(1, travelElapsed / 1800);
-          const easedEntry = entryProgress * entryProgress * (3 - 2 * entryProgress);
-          camera.position.lerpVectors(blackHoleEntryFrom, blackHoleEntryTo, easedEntry);
-          camera.quaternion.slerpQuaternions(blackHoleEntryStartOrientation, blackHoleEntryEndOrientation, easedEntry);
+          sampleBlackHolePassage(camera,blackHoleEntryFrom,blackHoleEntryTo,blackHoleEntryStartOrientation,blackHoleEntryEndOrientation,entryProgress);
           blackHoleScene.portal.visible = entryProgress < 0.58;
           blackHoleScene.interior.visible = entryProgress > 0.45;
         } else if (navigation.phase === 'RETURN_TO_GALAXY' && navigation.destination === 'black-hole' && navigation.blackHoleEntered && !reduced && !navigation.skip) {
           const exitDuration = 1800;
           if (travelElapsed < exitDuration) {
             const exitProgress = travelElapsed / exitDuration;
-            const easedExit = exitProgress * exitProgress * (3 - 2 * exitProgress);
-            camera.position.lerpVectors(blackHoleEntryTo, blackHoleArrivalPosition, easedExit);
-            camera.quaternion.slerpQuaternions(blackHoleEntryEndOrientation, blackHoleArrivalOrientation, easedExit);
+            sampleBlackHolePassage(camera,blackHoleEntryTo,blackHoleArrivalPosition,blackHoleEntryEndOrientation,blackHoleArrivalOrientation,exitProgress);
           } else {
             const returnProgress = Math.min(1, (travelElapsed - exitDuration) / 3800);
             travel.sample(camera, 1 - returnProgress);
@@ -903,20 +944,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
       portalGlowMaterial.opacity = 0.13 + Number(!reduced) * (0.035 + Math.sin(elapsed * 0.7) * 0.025);
       portalParticles.rotation.z = reduced ? 0 : elapsed * 0.035;
       for (const marker of markerSpriteData) {
-        marker.sprite.lookAt(camera.position);
-        const envelope = marker.object.type === 'letter';
-        if (envelope) marker.sprite.material.map = input.current.lettersRead?.includes(marker.object.id as LetterId) ? readEnvelopeTexture : envelopeTexture;
-        const destinationMarker = marker.object.id === navigation?.destination && navigation.phase !== 'GALAXY_IDLE';
-        if (destinationMarker) {
-          marker.sprite.position.copy(travel.destination);
-          const proximity = 1 - THREE.MathUtils.smoothstep(marker.sprite.position.distanceTo(camera.position), .65, 4);
-          marker.sprite.material.opacity = .42 + proximity * .58;
-          marker.sprite.scale.setScalar(marker.baseScale * (.12 + proximity * .32));
-        } else {
-          marker.sprite.material.opacity = marker.sprite === hoveredMarker ? envelope ? .92 : .82 : envelope ? .7 + Number(!reduced) * Math.sin(elapsed * .7 + marker.baseY) * .06 : .42;
-          marker.sprite.scale.setScalar(marker.baseScale * (marker.sprite === hoveredMarker ? .17 : .12));
-        }
-        if (!destinationMarker) marker.sprite.position.y = marker.baseY + Math.sin(elapsed * 0.12 + marker.object.position[0]) * 0.012;
+        animateUniverseMarker(marker,camera,hoveredMarker,reduced,elapsed,Boolean(input.current.lettersRead?.includes(marker.object.id as LetterId)),envelopeTexture,readEnvelopeTexture,marker.object.id===navigation?.destination&&navigation.phase!=='GALAXY_IDLE',travel.destination);
       }
       camera.getWorldDirection(cameraDirection);
       for (const word of universeWords) {
@@ -1115,7 +1143,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
       eyes.dispose();
       shooting.dispose();
       herStarMaterial.dispose();herConstellationGeometry.dispose();herConstellationMaterial.dispose();
-      herCoupleMaterial.dispose();
+      herElements.dispose();herCoupleMaterial.dispose();herLetterMarkers.forEach(m=>m.sprite.material.dispose());
       portalGeometry.forEach((geometry) => geometry.dispose());
       portalMaterials.forEach((portalMaterial) => portalMaterial.dispose());
       blackHoleScene.dispose();

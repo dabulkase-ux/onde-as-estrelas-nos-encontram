@@ -1,3 +1,5 @@
+import {holesRepository,herBlackHolesKey} from '../elements/repository';
+import { lettersRepository, herLettersKey } from '../letters/repository';
 import { ApiError, savingAvailable, supabaseConfig } from '../../../services/supabase';
 import { herProgressStore, herUniverseKey } from '../progress';
 import { quizRepository, herQuizKey } from '../../herCompatibility/repository';
@@ -16,20 +18,20 @@ export async function universeRequest<T>(body:unknown):Promise<T>{
   if(!data)throw new ApiError('O serviço retornou dados inválidos.',502);return data as T;
 }
 export function localDocument():UniverseDocument{
-  const compatibility=quizRepository.load(),couple=coupleRepository.load();
-  if(compatibility.error||couple.error)throw new Error('Um rascunho local não pôde ser lido. Ele foi preservado; corrija antes de importar.');
-  return validateDocument({version:1,galaxy:herProgressStore.read(),configuration:{generator:'spiral-v1'},compatibility:compatibility.draft,couple:couple.draft});
+  const compatibility=quizRepository.load(),couple=coupleRepository.load(),letters=lettersRepository.load(),holes=holesRepository.load();
+  if(compatibility.error||couple.error||letters.error||holes.error)throw new Error('Um rascunho local não pôde ser lido. Ele foi preservado; corrija antes de importar.');
+  return validateDocument({version:1,galaxy:herProgressStore.read(),configuration:{generator:'spiral-v1'},compatibility:compatibility.draft,couple:couple.draft,letters:letters.letters,...(holes.holes.length?{blackHoles:holes.holes}:{})});
 }
 export function restoreLocalDocument(input:unknown){
-  const doc=validateDocument(input),keys=[herUniverseKey,herQuizKey,herCoupleKey];
+  const doc=validateDocument(input),keys=[herUniverseKey,herQuizKey,herCoupleKey,herLettersKey,herBlackHolesKey];
   const previous=keys.map(key=>localStorage.getItem(key));
   // Durable backup precedes any replacement; it also covers a browser closing mid-write.
   localStorage.setItem('meu-universo.before-remote-import.v1',JSON.stringify({keys,previous}));
-  try{[doc.galaxy,doc.compatibility,doc.couple].forEach((value,index)=>localStorage.setItem(keys[index],JSON.stringify(value)));}
+  try{[doc.galaxy,doc.compatibility,doc.couple,doc.letters??[],doc.blackHoles??[]].forEach((value,index)=>localStorage.setItem(keys[index],JSON.stringify(value)));}
   catch(error){keys.forEach((key,index)=>{try{if(previous[index]===null)localStorage.removeItem(key);else localStorage.setItem(key,previous[index]!);}catch{/* Backup remains available. */}});throw error;}
 }
 export const remoteRepository={
-  owner:()=>universeRequest<{universe:RemoteUniverse|null}>({action:'owner'}),
+  owner:()=>universeRequest<{universe:RemoteUniverse|null;capabilities?:{letters?:boolean;blackHoles?:boolean}}>({action:'owner'}),
   publish:(revision:number,document:UniverseDocument)=>universeRequest<{publication:{id:string;universeId:string;revision:number}}>({action:'publish',revision,document}),
   public:(universeId?:string)=>universeRequest<{publication:Publication|null}>({action:'public',...(universeId?{universeId}:{})}),
   start:(publicationId:string,kind:Kind)=>universeRequest<{attempt:string}>({action:'start',publicationId,kind}),
