@@ -427,3 +427,6 @@ verify_jwt = false
 # Galaxy-scoped mail is visitor-accessible; database access remains server-only.
 [functions.stellar-mail]
 verify_jwt = false
+
+[functions.stellar-push]
+verify_jwt = false

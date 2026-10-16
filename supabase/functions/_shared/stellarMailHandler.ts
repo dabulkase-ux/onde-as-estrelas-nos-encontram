@@ -3,7 +3,7 @@ import {HttpError} from './security.ts';
 export type MailActor='arthur'|'carol';
 export type StellarLetter={id:string;sender:MailActor;recipient:MailActor;title:string;content:string;created_at:string;updated_at:string;read_at:string|null;noticed_at:string|null;revision:number};
 const fields:Record<string,string[]>={mailbox:['folder','page'],send:['id','title','content'],edit:['id','revision','title','content'],delete:['id','revision'],read:['id','revision'],arrival:[]};
-export function makeStellarMailHandler(settings:Pick<Settings,'db'|'origins'>){
+export function makeStellarMailHandler(settings:Pick<Settings,'db'|'origins'>&{afterSend?:(id:string)=>void}){
  return async(request:Request)=>{
   const origin=request.headers.get('origin')??'',allowed=settings.origins.includes(origin);
   const headers={'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Vary':'Origin',...(allowed?{'Access-Control-Allow-Origin':origin}:{}),'Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'600'};
@@ -25,7 +25,9 @@ export function makeStellarMailHandler(settings:Pick<Settings,'db'|'origins'>){
    if(['send','edit'].includes(action)&&(typeof body.title!=='string'||body.title.length>200||typeof body.content!=='string'||!body.content.trim()||body.content.length>20_000))throw new HttpError(400,'Escreva uma mensagem de até 20.000 caracteres e um título de até 200.');
    if(action==='mailbox'&&(!['received','sent'].includes(String(body.folder))||!Number.isSafeInteger(body.page)||Number(body.page)<0||Number(body.page)>1_000_000))throw new HttpError(400,'Página inválida.');
    const {action:_action,universe:_universe,...payload}=body;void _action;void _universe;
-   return reply(await settings.db('POST','rpc/stellar_mail',{p_actor:actor,p_action:action,p_payload:payload}));
+   const result=await settings.db('POST','rpc/stellar_mail',{p_actor:actor,p_action:action,p_payload:payload});
+   if(action==='send')try{settings.afterSend?.(String(body.id));}catch{/* Push never changes a confirmed mail response. */}
+   return reply(result);
   }catch(error){return reply({error:error instanceof HttpError?error.message:'Não foi possível abrir o correio. Sua mensagem não foi descartada.'},error instanceof HttpError?error.status:503);}
  };
 }

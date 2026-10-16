@@ -3,17 +3,20 @@ import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ApiError} from '../../services/supabase';
 import {clearLegacyMailSession,mailRequest,type MailActor,type StellarLetter} from './repository';
 import {MailPanel} from './MailPanel';
+import {PushBell} from './PushBell';
 import type {MailSceneInput} from '../../graphics/stellarPostbox';
 import './stellarMail.css';
 type Mailbox={actor?:MailActor;rows:StellarLetter[];hasMore:boolean;unread:number};
 const emptyBox:Mailbox={rows:[],hasMore:false,unread:0};
 
-export function useStellarMail(active:boolean,origin:MailActor,open:boolean,onOpen:(value:boolean)=>void){
+export function useStellarMail(active:boolean,origin:MailActor,open:boolean,onOpen:(value:boolean)=>void,pushAllowed=origin==='arthur'){
  const [folder,setFolder]=useState<'received'|'sent'>('received'),[page,setPage]=useState(0);
  const [box,setBox]=useState<Mailbox>(emptyBox),[error,setError]=useState(''),[arrival,setArrival]=useState('');
  const target=useRef<HTMLButtonElement>(null),requesting=useRef<string|null>(null),sequence=useRef(0),view=useRef(''),identity=useRef(origin),retry=useRef({failures:0,next:0});
  identity.current=origin;view.current=`${origin}:${folder}:${page}`;
  const visibleBox=box.actor===origin?box:emptyBox;
+ const notificationOpened=useRef(false),notificationId=new URLSearchParams(window.location.search).get('stellar-letter');
+ useEffect(()=>{if(active&&!notificationOpened.current&&notificationId&&/^[a-f0-9-]{36}$/i.test(notificationId)){notificationOpened.current=true;setFolder('received');setPage(0);onOpen(true);}},[active,notificationId,onOpen]);
  useEffect(()=>clearLegacyMailSession(),[]);
  useEffect(()=>{retry.current={failures:0,next:0};setBox(emptyBox);setArrival('');setFolder('received');setPage(0);setError('');},[origin]);
  const problem=useCallback((e:unknown)=>{setError(e instanceof Error?e.message:'As estrelas não responderam. Tente novamente.');if(e instanceof ApiError&&(e.status===401||e.status===403)){setBox(emptyBox);setArrival('');}},[]);
@@ -39,6 +42,6 @@ export function useStellarMail(active:boolean,origin:MailActor,open:boolean,onOp
  const project=useCallback((p:{x:number;y:number;visible:boolean})=>{if(target.current){target.current.dataset.onscreen=String(p.visible);target.current.style.setProperty('--mail-label-shift',`${Math.max(0,70-p.x)+Math.min(0,window.innerWidth-70-p.x)}px`);target.current.style.setProperty('--mail-x',`${p.x}px`);target.current.style.setProperty('--mail-y',`${p.y}px`);}},[]);
  const reveal=useCallback(()=>onOpen(true),[onOpen]);
  const scene:MailSceneInput=useMemo(()=>({visible:active&&!open,unread:visibleBox.unread,arrival,onOpen:reveal,onProject:project}),[active,open,visibleBox.unread,arrival,reveal,project]);
- const overlay=active?<><button ref={target} className="stellar-mail-target" onClick={reveal} aria-label={`Correio Estelar${visibleBox.unread?`, ${visibleBox.unread} não lidas`:''}`}><svg viewBox="0 0 60 44" aria-hidden="true"><rect x="4" y="5" width="52" height="34" rx="3"/><path d="M5 7 30 25 55 7 M5 37 22 23 M55 37 38 23"/></svg><span>Correio Estelar{visibleBox.unread>0&&<b>{visibleBox.unread}</b>}</span></button>{open&&<MailPanel key={origin} origin={origin} box={visibleBox} folder={folder} page={page} error={error} onClose={()=>onOpen(false)} onFolder={value=>{setFolder(value);setPage(0);}} onPage={setPage} onRefresh={async()=>{await refresh(true);}} onMutate={mutate}/>}</>:null;
+ const overlay=active?<>{pushAllowed&&!open&&<PushBell key={origin} identity={origin}/>}<button ref={target} className="stellar-mail-target" onClick={reveal} aria-label={`Correio Estelar${visibleBox.unread?`, ${visibleBox.unread} não lidas`:''}`}><svg viewBox="0 0 60 44" aria-hidden="true"><rect x="4" y="5" width="52" height="34" rx="3"/><path d="M5 7 30 25 55 7 M5 37 22 23 M55 37 38 23"/></svg><span>Correio Estelar{visibleBox.unread>0&&<b>{visibleBox.unread}</b>}</span></button>{open&&<MailPanel key={origin} initialId={notificationId} origin={origin} box={visibleBox} folder={folder} page={page} error={error} onClose={()=>onOpen(false)} onFolder={value=>{setFolder(value);setPage(0);}} onPage={setPage} onRefresh={async()=>{await refresh(true);}} onMutate={mutate}/>}</>:null;
  return {scene,overlay};
 }

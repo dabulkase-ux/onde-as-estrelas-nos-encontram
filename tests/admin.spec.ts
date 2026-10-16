@@ -6,7 +6,10 @@ const token='a'.repeat(64);
 async function mockApi(page:Page, submissions: Record<string,unknown>[] = [], expires=15*60000) {
  let authorized=false;
  await page.route('https://supabase-test.invalid/functions/v1/**',async route=>{
-  const body=route.request().postDataJSON();const admin=route.request().url().endsWith('/admin');
+  const body=route.request().postDataJSON(),url=route.request().url();const admin=url.endsWith('/admin');
+  // Mailbox/Push reads are independent of quiz/proposal submissions.
+  if(url.endsWith('/stellar-mail'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body.action==='arrival'?{id:null}:{actor:body.universe,rows:[],hasMore:false,unread:0})});
+  if(url.endsWith('/stellar-push'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body.action==='config'?{publicKey:''}:{identity:null,generation:0,enabled:false,endpoint:null})});
   let status=200;let response:unknown={};
   if(!admin){submissions.push(body);status=201;response={ok:true};}
   else if(body.action==='login') {
