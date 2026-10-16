@@ -1,8 +1,9 @@
+import {publicFunctionOrigins} from '../_shared/publicOrigins.ts';
 import { makeUniverseHandler } from '../_shared/herUniverseHandler.ts';
 import { HttpError } from '../_shared/security.ts';
 const url=Deno.env.get('SUPABASE_URL')??'',key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??'';
 Deno.serve(makeUniverseHandler({
-  origins:(Deno.env.get('ALLOWED_ORIGINS')??'').split(',').map(s=>s.trim()).filter(Boolean),
+  origins:publicFunctionOrigins(Deno.env.get('ALLOWED_ORIGINS')),
   db:async(method,path,body)=>{
     if(!url||!key)throw new HttpError(503,'Serviço ainda não configurado.');
     const response=await fetch(`${url}/rest/v1/${path}`,{method,headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(10000)});

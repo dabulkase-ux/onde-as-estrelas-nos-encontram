@@ -6,7 +6,7 @@ const uuid=(value:unknown)=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[
 export function makeUniverseHandler(settings:UniverseSettings){
   return async(request:Request)=>{
     const origin=request.headers.get('origin')??'';
-    const headers={'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin',...(settings.origins.includes(origin)?{'Access-Control-Allow-Origin':origin}:{}),'Access-Control-Allow-Headers':'authorization,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS'};
+    const headers={'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin',...(settings.origins.includes(origin)?{'Access-Control-Allow-Origin':origin}:{}),'Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Max-Age':'600'};
     const respond=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
     try{
       if(!settings.origins.length)throw new HttpError(503,'Serviço ainda não configurado.');

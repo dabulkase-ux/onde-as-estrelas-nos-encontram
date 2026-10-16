@@ -1,0 +1,8 @@
+import {afterEach,expect,it,vi} from 'vitest';
+import {clearLegacyMailSession,mailRequest} from './repository';
+afterEach(()=>vi.unstubAllGlobals());
+it('sends Arthurs galaxy without authorization or a session',async()=>{const fetch=vi.fn().mockResolvedValue({ok:true,json:async()=>({actor:'arthur'})});vi.stubGlobal('fetch',fetch);await mailRequest({action:'mailbox',universe:'arthur',folder:'received',page:0});const options=fetch.mock.calls[0][1];expect(options.headers.Authorization).toBeUndefined();expect(options.credentials).toBe('omit');expect(JSON.parse(options.body).universe).toBe('arthur');});
+it('sends Carols galaxy without authorization or a session',async()=>{const fetch=vi.fn().mockResolvedValue({ok:true,json:async()=>({actor:'carol'})});vi.stubGlobal('fetch',fetch);expect(await mailRequest({action:'mailbox',universe:'carol',folder:'received',page:0})).toEqual({actor:'carol'});expect(fetch.mock.calls[0][1].headers.Authorization).toBeUndefined();});
+it('reports unavailable backend without pretending mail was sent',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:false,status:404,json:async()=>({})}));await expect(mailRequest({action:'send',universe:'carol'})).rejects.toThrow('não foi habilitado');});
+it('removes only the obsolete mail session, never the admin or drafts',()=>{const removeItem=vi.fn();vi.stubGlobal('sessionStorage',{removeItem});clearLegacyMailSession();expect(removeItem).toHaveBeenCalledExactlyOnceWith('meu-universo.stellar-mail.session.v1');vi.unstubAllGlobals();});
+it('handles unavailable browser storage without changing access or throwing',()=>{vi.stubGlobal('sessionStorage',{removeItem:()=>{throw Error('blocked');}});expect(clearLegacyMailSession).not.toThrow();vi.unstubAllGlobals();});

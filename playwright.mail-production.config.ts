@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests',testMatch:'stellar-mail-production.spec.ts',outputDir:'test-results/stellar-mail-release-20261016/production',timeout:180000,expect:{timeout:15000},workers:1,use:{baseURL:'https://onde-as-estrelas-nos-encontram.vercel.app',browserName:'chromium',channel:'msedge',hasTouch:true,viewport:{width:390,height:850},trace:'retain-on-failure',screenshot:'only-on-failure'}});

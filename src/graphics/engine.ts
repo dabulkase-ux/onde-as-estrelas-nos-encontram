@@ -1,3 +1,4 @@
+import {StellarPostbox,type MailSceneInput} from './stellarPostbox';
 import {sampleBlackHolePassage} from './blackHoleTravel';
 import {createHerBlackHoles,type HerElementsInput} from './herBlackHoles';
 import { createUniverseMarker, animateUniverseMarker, type LetterJourney } from './letterMarkers';
@@ -20,7 +21,7 @@ import { fragmentShader, vertexShader } from './shaders';
 import { universeObjects } from './universeObjects';
 
 export interface GardenProjection { x: number; y: number; visible: boolean; }
-export interface SceneInput { herElements?:HerElementsInput; herLetters?:readonly HerLetter[];herLettersRead?:readonly string[]; herLetterJourney?:LetterJourney|null; onHerLetter?:(id:string)=>void; onHerLettersProjection?:(points:readonly LetterProjection<string>[])=>void; onHerLetterTravelComplete?:()=>void; herView?: boolean; herCompatibilityAvailable?: boolean; herCoupleAvailable?: boolean; onHerCouple?: () => void; onHerCoupleProjection?: (point: GardenProjection) => void; herQuizOpen?: boolean; onHerQuiz?: () => void; onHerQuizProjection?: (point: GardenProjection) => void; herUniverse?: HerProgress; onHerArrived?: () => void; onHerCreated?: () => void; eyesWatched?: boolean; eyesHint?: boolean; onEyesReady?: () => void; onEyesProjection?: (point: GardenProjection) => void; shootingState?: ShootingState; onWish?: () => void; mode: 'hidden' | 'fingerprint' | 'galaxy'; scan: number; reduced: boolean; suspended?: boolean; navigation?: Navigation; onTravelComplete?: () => void; compatibilityCompleted?: boolean; lettersRead?: readonly LetterId[]; onLetter?: (id: LetterId) => void; onLetterProjection?: (points: readonly LetterProjection[]) => void; onGarden?: () => void; onGardenProjection?: (projection: GardenProjection) => void; onBlackHole?: () => void; onBlackHoleFragment?: (id: BlackHoleFragmentId) => void; onBlackHoleAccessProjection?: (projection: GardenProjection) => void; onBlackHoleProjection?: (points: readonly BlackHoleProjection[]) => void; blackHoleDiscovered?: readonly BlackHoleFragmentId[]; blackHoleStarFormed?: boolean; onBlackHoleStarFormed?: () => void; onCompatibility?: () => void; onCouple?: () => void; }
+export interface SceneInput { mailbox?:MailSceneInput; herElements?:HerElementsInput; herLetters?:readonly HerLetter[];herLettersRead?:readonly string[]; herLetterJourney?:LetterJourney|null; onHerLetter?:(id:string)=>void; onHerLettersProjection?:(points:readonly LetterProjection<string>[])=>void; onHerLetterTravelComplete?:()=>void; herView?: boolean; herCompatibilityAvailable?: boolean; herCoupleAvailable?: boolean; onHerCouple?: () => void; onHerCoupleProjection?: (point: GardenProjection) => void; herQuizOpen?: boolean; onHerQuiz?: () => void; onHerQuizProjection?: (point: GardenProjection) => void; herUniverse?: HerProgress; onHerArrived?: () => void; onHerCreated?: () => void; eyesWatched?: boolean; eyesHint?: boolean; onEyesReady?: () => void; onEyesProjection?: (point: GardenProjection) => void; shootingState?: ShootingState; onWish?: () => void; mode: 'hidden' | 'fingerprint' | 'galaxy'; scan: number; reduced: boolean; suspended?: boolean; navigation?: Navigation; onTravelComplete?: () => void; compatibilityCompleted?: boolean; lettersRead?: readonly LetterId[]; onLetter?: (id: LetterId) => void; onLetterProjection?: (points: readonly LetterProjection[]) => void; onGarden?: () => void; onGardenProjection?: (projection: GardenProjection) => void; onBlackHole?: () => void; onBlackHoleFragment?: (id: BlackHoleFragmentId) => void; onBlackHoleAccessProjection?: (projection: GardenProjection) => void; onBlackHoleProjection?: (points: readonly BlackHoleProjection[]) => void; blackHoleDiscovered?: readonly BlackHoleFragmentId[]; blackHoleStarFormed?: boolean; onBlackHoleStarFormed?: () => void; onCompatibility?: () => void; onCouple?: () => void; }
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -151,6 +152,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
   let herLetterMarkers:ReturnType<typeof createUniverseMarker>[]=[];
   let herLetterSource:SceneInput['herLetters'];
   const herElements=createHerBlackHoles(scene,canvas,camera,()=>input.current.herElements);
+  const mailbox=new StellarPostbox(scene,texture,envelopeTexture,()=>input.current.mailbox);
   const herLetterTravel=new CameraTravel();let herLetterPhase='',herLetterElapsed=0,herLetterFinished=false;
   const blackHoleObject = universeObjects.find(entry => entry.id === 'black-hole')!;
   const blackHoleScene = createBlackHoleScene(scene, new THREE.Vector3(...blackHoleObject.position));
@@ -414,7 +416,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
     if (input.current.herUniverse) {
       const rect=canvas.getBoundingClientRect();markerPointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);
       markerRaycaster.setFromCamera(markerPointer,camera);
-      const hit=input.current.herUniverse.stage==='ready'&&!input.current.herQuizOpen?markerRaycaster.intersectObjects([herStar,herCoupleStar,...herLetterMarkers.map(m=>m.sprite),...herElements.hitAreas].filter(star=>star.visible))[0]?.object:null;
+      const hit=input.current.herUniverse.stage==='ready'&&!input.current.herQuizOpen?markerRaycaster.intersectObjects([herStar,herCoupleStar,...herLetterMarkers.map(m=>m.sprite),...herElements.hitAreas,...(mailbox.group.visible?[mailbox.marker.sprite]:[])].filter(star=>star.visible))[0]?.object:null;
       hoveredMarker=hit instanceof THREE.Sprite?hit:hit?.userData.herProxy??null;
       canvas.style.cursor=hoveredMarker?'pointer':'grab';return;
     }
@@ -426,6 +428,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
     markerRaycaster.setFromCamera(markerPointer, camera);
     const intersection = markerRaycaster.intersectObjects([
       ...markerSpriteData.filter(({ object }) => object.id !== 'black-hole').map(({ sprite }) => sprite),
+      ...(mailbox.group.visible?[mailbox.marker.sprite]:[]),
       portalHitArea,
       blackHoleScene.hitArea,
     ], false)[0];
@@ -780,6 +783,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
       canvas.dataset.herStage=her.stage;
       canvas.dataset.herColors=JSON.stringify(her.colors);
       publishPose();
+      mailbox.update(camera,canvas,herRawDelta,reduced,now);
       renderer.render(scene,camera);
       const settling=Math.abs(cameraRig.azimuth-cameraRig.targetAzimuth)>.0001||Math.abs(cameraRig.polar-cameraRig.targetPolar)>.0001||Math.abs(cameraRig.distance-cameraRig.targetDistance)>.0001;
       if(!reduced||her.stage==='travel'||her.stage==='creating'||input.current.herLetterJourney&&input.current.herLetterJourney.phase!=='reading'||input.current.herElements?.journey||settling)frame=requestAnimationFrame(draw);
@@ -1052,6 +1056,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
       projectedLetter.copy(eyes.group.position).project(camera);
       input.current.onEyesProjection?.({x:(projectedLetter.x+1)*width/2,y:(1-projectedLetter.y)*height/2,visible:Math.abs(projectedLetter.x)<.9&&Math.abs(projectedLetter.y)<.9&&projectedLetter.z<1});
     }
+    mailbox.update(camera,canvas,rawDt,reduced,now);
     renderer.render(scene, camera);
     if(eyesActive && eyeRect){projectedLetter.copy(eyes.center).project(camera);canvas.dataset.eyesCenter=JSON.stringify([eyeRect.left+(projectedLetter.x+1)*width/2,eyeRect.top+(1-projectedLetter.y)*height/2]);}
     else delete canvas.dataset.eyesCenter;
@@ -1141,7 +1146,7 @@ export function mountEngine(canvas: HTMLCanvasElement, input: { current: SceneIn
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('keydown',onHerKey);
       eyes.dispose();
-      shooting.dispose();
+      shooting.dispose();mailbox.dispose();
       herStarMaterial.dispose();herConstellationGeometry.dispose();herConstellationMaterial.dispose();
       herElements.dispose();herCoupleMaterial.dispose();herLetterMarkers.forEach(m=>m.sprite.material.dispose());
       portalGeometry.forEach((geometry) => geometry.dispose());

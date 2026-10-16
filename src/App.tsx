@@ -1,3 +1,4 @@
+import {useStellarMail} from './experiences/stellarMail/useStellarMail';
 import {ElementOrganizer} from './experiences/herUniverse/elements/ElementOrganizer';
 import {TravelOverlay} from './graphics/TravelOverlay';
 import {useHerElements} from './experiences/herUniverse/elements/useHerElements';
@@ -48,6 +49,7 @@ const PublishedUniverse = lazy(() => import('./experiences/herUniverse/remote/Pu
 const CreatorRecovery = lazy(()=>import('./experiences/herUniverse/remote/CreatorRecovery'));
 const CreatorCloudPanel = lazy(() => import('./experiences/herUniverse/remote/CreatorCloudPanel'));
 export function App() {
+ const [mailOpen,setMailOpen]=useState(false);
 
   const [herRoute,setHerRoute]=useState(()=>['/universo-dela','/universo-dela/visao'].includes(window.location.pathname.replace(/\/$/,'')));
   const [herView,setHerView]=useState(()=>window.location.pathname.replace(/\/$/,'')==='/universo-dela/visao');
@@ -256,7 +258,7 @@ export function App() {
   const wishOpen = navigation.phase === 'WISH_ACTIVE';
   const eyesActive=navigation.phase==='EYES_ACTIVE';
   const unlocked=eyesUnlocked(lettersRead,quizCompleted,coupleCompleted,blackHoleProgress);
-  const encounter = useWishEncounter(!herActive && !finishEyesOverride && !eyesHint && act === 'universe' && introDismissed && navigation.phase === 'GALAXY_IDLE');
+  const encounter = useWishEncounter(!mailOpen && !herActive && !finishEyesOverride && !eyesHint && act === 'universe' && introDismissed && navigation.phase === 'GALAXY_IDLE');
   const startEyes=useCallback(()=>{
     if(navigationRef.current.phase!=='GALAXY_IDLE')return;
     setEyesReady(false);setEyesHint(false);setEyesSeen(true);
@@ -276,36 +278,38 @@ export function App() {
     node.tabIndex=point.visible?0:-1;
   },[]);
   useEffect(()=>{
-    if(!finishEyesOverride||finishEyesStarted.current||act!=='universe'||!introDismissed||
+    if(mailOpen||!finishEyesOverride||finishEyesStarted.current||act!=='universe'||!introDismissed||
       navigation.phase!=='GALAXY_IDLE'||lettersFallback||encounter.invited)return;
     finishEyesStarted.current=true;
     startEyes();
-  },[finishEyesOverride,act,introDismissed,navigation.phase,lettersFallback,encounter.invited,startEyes]);
+  },[mailOpen,finishEyesOverride,act,introDismissed,navigation.phase,lettersFallback,encounter.invited,startEyes]);
   useEffect(()=>{
     let last=performance.now();
     const timer=setInterval(()=>{
       const now=performance.now();
-      const eligible=!herActive&&!finishEyesOverride&&unlocked&&!eyesSeen&&!lettersFallback&&act==='universe'&&introDismissed&&navigationRef.current.phase==='GALAXY_IDLE'&&!encounter.invited;
+      const eligible=!mailOpen&&!herActive&&!finishEyesOverride&&unlocked&&!eyesSeen&&!lettersFallback&&act==='universe'&&introDismissed&&navigationRef.current.phase==='GALAXY_IDLE'&&!encounter.invited;
       const active=!document.hidden&&document.hasFocus()&&now-lastEyeActivity.current<5000;
       const launch=eyeClock.current.tick(now-last,eligible,active);last=now;
       setEyesHint(eligible&&eyeClock.current.elapsed>=7000);
       if(launch && !eyeInteracting.current && eyeKeys.current.size===0 && now-lastEyeActivity.current>=500) {eyeClock.current.elapsed=0;startEyes();}
     },250);
     return()=>clearInterval(timer);
-  },[herActive,finishEyesOverride,unlocked,eyesSeen,lettersFallback,act,introDismissed,encounter.invited,startEyes]);
+  },[mailOpen,herActive,finishEyesOverride,unlocked,eyesSeen,lettersFallback,act,introDismissed,encounter.invited,startEyes]);
   const [wishDelivered,setWishDelivered] = useState(false);
   const acceptWish = () => { if(!encounter.invited || navigationRef.current.phase !== 'GALAXY_IDLE') return; encounter.dismiss();setWishDelivered(false);travel('wish'); };
   const wishJourney = navigation.destination === 'wish' && navigation.phase !== 'GALAXY_IDLE';
   const shootingState = wishJourney ? wishDelivered && navigation.phase === 'WISH_ACTIVE' ? 'delivered' : 'held' : encounter.invited ? 'invited' : 'hidden';
   const chapter = ['lock','unlocking'].includes(act) ? 0 : ['narrative','scan','recognized','love'].includes(act) ? 1 : 2;
   const toggleSound = () => { try { setSound(!sound); setSoundState(!sound); if (!sound) feedback('tap'); } catch { setSoundState(false); } };
+  const mail=useStellarMail(!(herRoute&&herView&&remoteEnabled&&new URLSearchParams(window.location.search).get('preview')!=='local')&&(herActive?herProgress.stage==='ready'&&!herQuizOpen&&!herCoupleOpen&&!herLetters.editor&&!herLetters.journey&&!herElements.journey:act==='universe'&&navigation.phase==='GALAXY_IDLE'&&!quizOpen&&!coupleOpen&&!wishOpen&&!gardenInvitation&&!encounter.invited),herActive?'carol':'arthur',mailOpen,setMailOpen);
   if(herRoute&&herView&&remoteEnabled&&new URLSearchParams(window.location.search).get('preview')!=='local')return <Suspense fallback={<p role="status">Encontrando suas estrelas...</p>}><PublishedUniverse onReturn={()=>navigateHer(false)}/></Suspense>;
   if(herRoute&&herView&&(!herViewData.galaxy||!herActive))return <EmptyUniverseView onReturn={()=>navigateHer(false)}/>;
   if(herRoute&&!herProgress.accepted)return <section className="her-universe" style={{pointerEvents:'auto'}}><div className="nexus-dialog"><h1>Há um universo esperando por você.</h1><p>Comece pelo universo original. Cada estrela tem seu próprio tempo.</p><a href="/">Conhecer o universo original</a>{remoteEnabled&&<Suspense fallback={null}><CreatorRecovery/></Suspense>}</div></section>;
   return <div onPointerDownCapture={()=>{eyeInteracting.current=true;}} onPointerUpCapture={()=>{eyeInteracting.current=false;}} onPointerCancelCapture={()=>{eyeInteracting.current=false;}} onWheelCapture={()=>{lastEyeActivity.current=performance.now();}} onPointerMoveCapture={()=>{lastEyeActivity.current=performance.now();}} onKeyDownCapture={event=>{if(['Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-'].includes(event.key)){lastEyeActivity.current=performance.now();eyeKeys.current.add(event.key);}}} onKeyUpCapture={event=>{eyeKeys.current.delete(event.key);}} onBlurCapture={()=>{eyeKeys.current.clear();}} className={`${herActive&&herElements.journey?'her-hole-open':''} ${herActive&&herLetters.journey ? 'her-letter-active' : ''} ${herView ? 'her-view' : ''} ${herActive ? 'her-active' : ''} ${eyesActive ? 'eyes-open' : ''} experience act-${act} ${quizOpen ? 'quiz-open' : ''} ${coupleOpen ? 'couple-open' : ''} ${wishOpen ? 'wish-open' : ''} ${letterOpen ? 'letter-open' : ''} ${travelling ? 'is-travelling' : ''} ${gardenActive || returningFromGarden ? 'garden-open' : ''} ${gardenInvitation ? 'portal-prompt-open' : ''} ${blackHoleOpen || blackHoleJourney ? 'black-hole-open' : ''} ${introDismissed ? 'is-exploring' : ''} ${reduced ? 'reduced-motion' : ''}`} data-act={act} data-navigation={navigation.phase}>
+    {mail.overlay}
     {herActive&&!herView&&remoteEnabled&&<Suspense fallback={null}><CreatorCloudPanel/></Suspense>}
     {herActive && herView && <ExplorationView data={herViewData} onReturn={()=>navigateHer(false)} onOpenQuiz={openHerQuiz} onOpenCouple={openHerCouple} quizOpen={herQuizOpen} coupleOpen={herCoupleOpen} quizAccess={herQuizAccess} coupleAccess={herCoupleAccess}/>}
-    {herActive && !herView && <HerUniverse progress={herProgress} onChange={changeHer} reduced={reduced} storageFailed={storageFailed} travelReady={herTravelReady} creationReady={herCreationReady} quizOpen={herQuizOpen} onOpenQuiz={openHerQuiz} quizAccess={herQuizAccess} coupleOpen={herCoupleOpen} onOpenCouple={openHerCouple} coupleAccess={herCoupleAccess} onView={()=>navigateHer(true)}/>}<Ambient/>{(preload || act !== 'lock') && <Suspense fallback={null}><Cosmos {...(herActive?herLetters.canvasProps:{})} herElements={herActive?herElements.canvas:undefined} herView={herView} herCompatibilityAvailable={Boolean(herViewData.compatibility)} herCoupleAvailable={Boolean(herViewData.couple)} onHerCouple={openHerCouple} onHerCoupleProjection={projectHerCouple} herQuizOpen={herQuizOpen || herCoupleOpen || Boolean(herLetters.journey) || herLetters.editor || Boolean(herElements.journey)} onHerQuiz={openHerQuiz} onHerQuizProjection={projectHerQuiz} herUniverse={herActive ? herProgress : undefined} onHerArrived={herArrived} onHerCreated={herCreated} eyesWatched={eyesSeen} eyesHint={eyesHint} onEyesReady={readyEyes} onEyesProjection={projectEyes} act={act} scan={scan} reduced={reduced} onFormed={formed} shootingState={shootingState} onWish={acceptWish} onGarden={openGarden} onGardenProjection={projectGarden} onBlackHole={openBlackHole} onBlackHoleFragment={selectBlackHoleFragment} onBlackHoleAccessProjection={projectBlackHoleAccess} onBlackHoleProjection={projectBlackHole} blackHoleDiscovered={blackHoleProgress.discovered} blackHoleStarFormed={blackHoleProgress.starFormed} onBlackHoleStarFormed={blackHoleStarFormed} quizOpen={!herActive && (eyesActive || quizOpen || coupleOpen || letterOpen || wishOpen || gardenInvitation || gardenActive || blackHoleOpen)} compatibilityCompleted={quizCompleted} onCompatibility={openQuiz} onCouple={openCouple} navigation={herActive ? undefined : navigation} onTravelComplete={travelComplete} lettersRead={lettersRead} onLetter={travel} onLetterProjection={projectLetters} onLettersFallback={herActive?herFallback:onLettersFallback}/></Suspense>}
+    {herActive && !herView && <HerUniverse progress={herProgress} onChange={changeHer} reduced={reduced} storageFailed={storageFailed} travelReady={herTravelReady} creationReady={herCreationReady} quizOpen={herQuizOpen} onOpenQuiz={openHerQuiz} quizAccess={herQuizAccess} coupleOpen={herCoupleOpen} onOpenCouple={openHerCouple} coupleAccess={herCoupleAccess} onView={()=>navigateHer(true)}/>}<Ambient/>{(preload || act !== 'lock') && <Suspense fallback={null}><Cosmos mailbox={mail.scene} {...(herActive?herLetters.canvasProps:{})} herElements={herActive?herElements.canvas:undefined} herView={herView} herCompatibilityAvailable={Boolean(herViewData.compatibility)} herCoupleAvailable={Boolean(herViewData.couple)} onHerCouple={openHerCouple} onHerCoupleProjection={projectHerCouple} herQuizOpen={mailOpen || herQuizOpen || herCoupleOpen || Boolean(herLetters.journey) || herLetters.editor || Boolean(herElements.journey)} onHerQuiz={openHerQuiz} onHerQuizProjection={projectHerQuiz} herUniverse={herActive ? herProgress : undefined} onHerArrived={herArrived} onHerCreated={herCreated} eyesWatched={eyesSeen} eyesHint={eyesHint} onEyesReady={readyEyes} onEyesProjection={projectEyes} act={act} scan={scan} reduced={reduced} onFormed={formed} shootingState={shootingState} onWish={acceptWish} onGarden={openGarden} onGardenProjection={projectGarden} onBlackHole={openBlackHole} onBlackHoleFragment={selectBlackHoleFragment} onBlackHoleAccessProjection={projectBlackHoleAccess} onBlackHoleProjection={projectBlackHole} blackHoleDiscovered={blackHoleProgress.discovered} blackHoleStarFormed={blackHoleProgress.starFormed} onBlackHoleStarFormed={blackHoleStarFormed} quizOpen={mailOpen || !herActive && (eyesActive || quizOpen || coupleOpen || letterOpen || wishOpen || gardenInvitation || gardenActive || blackHoleOpen)} compatibilityCompleted={quizCompleted} onCompatibility={openQuiz} onCouple={openCouple} navigation={herActive ? undefined : navigation} onTravelComplete={travelComplete} lettersRead={lettersRead} onLetter={travel} onLetterProjection={projectLetters} onLettersFallback={herActive?herFallback:onLettersFallback}/></Suspense>}
     {herActive&&herProgress.stage==='ready'&&!herQuizOpen&&!herCoupleOpen&&!herElements.journey&&herLetters.overlay}
     {herActive&&herProgress.stage==='ready'&&!herQuizOpen&&!herCoupleOpen&&!herLetters.editor&&!herLetters.journey&&herElements.overlay}
     {herActive&&!herView&&herProgress.stage==='ready'&&!herQuizOpen&&!herCoupleOpen&&!herLetters.editor&&!herLetters.journey&&!herElements.journey&&<div className="her-element-tools"><button onClick={herLetters.openEditor}>Adicionar carta</button><button onClick={herElements.openMenu}>Adicionar elemento</button><ElementOrganizer letters={{items:herLetters.letters,open:herLetters.open,locate:herLetters.locate,remove:herLetters.remove,error:herLetters.error}} holes={{items:herElements.holes,open:herElements.open,locate:herElements.locate,remove:herElements.remove,error:herElements.error}}/></div>}

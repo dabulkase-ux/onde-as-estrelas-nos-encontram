@@ -12,6 +12,8 @@ test.beforeEach(async({page})=>{
   const request=route.request();
   if(request.method()==='OPTIONS')return route.continue();
   let action='';try{action=request.postDataJSON()?.action??'';}catch{/* Other endpoints are blocked below. */}
+  if(request.url().endsWith('/stellar-mail')&&action==='mailbox')return route.continue();
+  if(request.url().endsWith('/stellar-mail')&&action==='arrival')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:null})});
   if(request.url().endsWith('/her-universe')&&['owner','public'].includes(action))return route.continue();
   await route.abort('blockedbyclient');throw new Error('Production smoke blocked a non-read request.');
  });

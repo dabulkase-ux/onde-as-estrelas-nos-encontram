@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests',testMatch:'stellar-mail.spec.ts',outputDir:'test-results/stellar-mail',timeout:150000,expect:{timeout:15000},workers:1,use:{baseURL:'http://localhost:5186',browserName:'chromium',channel:'msedge',hasTouch:true,trace:'retain-on-failure',screenshot:'only-on-failure'},webServer:{command:'npm run mail:local',url:'http://localhost:5186',reuseExistingServer:true}});
