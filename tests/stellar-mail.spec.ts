@@ -51,3 +51,11 @@ test('changing galaxies automatically changes the mailbox without keeping a mail
 test('an unavailable backend backs off and does not also query arrival',async({page})=>{
  let requests=0;await page.route('**/stellar-mail-local',async route=>{requests++;await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Indisponibilidade simulada.'})});});await galaxy(page,320);await expect.poll(()=>requests).toBe(1);await page.clock.install();await page.clock.runFor(5000);expect(requests).toBe(1);await page.clock.runFor(11000);await expect.poll(()=>requests).toBe(2);await page.clock.runFor(5000);expect(requests).toBe(2);
 });
+
+
+test('manual refresh starts a fresh query while an older poll is still pending',async({page})=>{
+ let requests=0,release:(()=>void)|undefined;const pending=new Promise<void>(resolve=>{release=resolve;});
+ const now=new Date().toISOString(),letter={id:crypto.randomUUID(),sender:'arthur',recipient:'carol',title:'Consulta atual isolada',content:'Somente no teste.',revision:2,created_at:now,updated_at:now,read_at:null,noticed_at:null};
+ await page.route('**/stellar-mail-local',async route=>{if(route.request().postDataJSON().action!=='mailbox')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:null})});requests++;const old=requests===1;if(old)await pending;return route.fulfill({status:200,contentType:'application/json',headers:old?{'x-test-old':'true'}:{},body:JSON.stringify({actor:'carol',rows:old?[]:[letter],hasMore:false,unread:1})});});
+ await galaxy(page,390);const panel=await openMail(page,'carol');await expect.poll(()=>requests).toBe(1);await panel.getByRole('button',{name:'Atualizar',exact:true}).click();await expect.poll(()=>requests).toBe(2);await expect(panel.getByRole('button',{name:/Consulta atual isolada/})).toBeVisible();const oldResponse=page.waitForResponse(response=>response.headers()['x-test-old']==='true');release!();await (await oldResponse).finished();await expect(panel.getByRole('button',{name:/Consulta atual isolada/})).toBeVisible();
+});

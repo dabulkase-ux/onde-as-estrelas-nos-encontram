@@ -19,7 +19,7 @@ export function useStellarMail(active:boolean,origin:MailActor,open:boolean,onOp
  const problem=useCallback((e:unknown)=>{setError(e instanceof Error?e.message:'As estrelas não responderam. Tente novamente.');if(e instanceof ApiError&&(e.status===401||e.status===403)){setBox(emptyBox);setArrival('');}},[]);
  const refresh=useCallback(async(force=false)=>{
   const currentView=`${origin}:${folder}:${page}`;
-  if((!force&&Date.now()<retry.current.next)||requesting.current===currentView)return false;
+  if(!force&&(Date.now()<retry.current.next||requesting.current===currentView))return false;
   requesting.current=currentView;const request=++sequence.current;
   try{const next=await mailRequest<Mailbox>({action:'mailbox',universe:origin,folder,page});
    if(identity.current!==origin||view.current!==currentView||sequence.current!==request)return false;

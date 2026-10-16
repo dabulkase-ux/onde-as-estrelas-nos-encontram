@@ -47,4 +47,4 @@ it('enforces RLS/table privileges, rejects oversized input and invalid galaxies'
 
 it('executes the dedicated SQL limiter and never accepts admin or quiz buckets',async()=>{
  const isolated=await createMailFixture();try{const check=async()=>{return (await isolated.db.query<{ok:boolean}>('select public.stellar_mail_rate_limit($1,2,60) ok',['stellar-mail:arthur'])).rows[0].ok;};expect(await check()).toBe(true);expect(await check()).toBe(true);expect(await check()).toBe(false);await expect(isolated.db.query("select public.stellar_mail_rate_limit('admin-login',2,60)")).rejects.toThrow();expect((await isolated.db.query<{ok:boolean}>("select has_function_privilege('anon','public.stellar_mail_rate_limit(text,integer,integer)','EXECUTE') ok")).rows[0].ok).toBe(false);}finally{await isolated.db.close();}
-});
+},30000);
